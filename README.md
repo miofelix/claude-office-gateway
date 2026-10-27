@@ -8,7 +8,7 @@ Supports Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses, incl
 
 ## Beta download and updates
 
-Current version: **0.2.0-beta.3**. [Download the beta](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.3): Apple Silicon DMG and Windows x64 EXE / MSI. macOS Intel builds ended with beta.2.
+Current version: **0.2.0-beta.4**. [Download the beta](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.4): Apple Silicon DMG and Windows x64 EXE / MSI. macOS Intel builds ended with beta.2.
 
 Click the version beside the app title for update checks, release notes and download progress. Startup checks are enabled by default and can be disabled. Installation is manual, verifies the update signature, then restarts the app. Prereleases use the beta channel; stable builds use stable. Beta also receives newer stable releases.
 

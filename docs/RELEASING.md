@@ -1,6 +1,6 @@
 # 发布与应用更新
 
-版本：`0.2.0-beta.3`。仓库：<https://github.com/miofelix/claude-office-gateway>。
+版本：`0.2.0-beta.4`。仓库：<https://github.com/miofelix/claude-office-gateway>。
 
 ## 版本与通道
 
@@ -13,7 +13,7 @@ Windows MSI 使用数值映射，避免 WiX 不接受 `beta.1` 和 Windows Insta
 - 应用 `major.minor.patch-beta.N` → MSI `major.minor.(patch*256+N)`。
 - `rc.N` 的槽位为 `127+N`，正式版为 `255`。
 - `major`、`minor`、`patch` 最大 255，N 为 1..127。
-- 本次 `0.2.0-beta.3` 的 MSI ProductVersion 为 `0.2.3`；应用和更新仍显示完整的 `0.2.0-beta.3`。
+- 本次 `0.2.0-beta.4` 的 MSI ProductVersion 为 `0.2.4`；应用和更新仍显示完整的 `0.2.0-beta.4`。
 
 `check-release.py` 检查 npm、Cargo、Tauri 版本一致以及 MSI 映射。选定 updater `2.10.0`，与当前 Tauri / Rust 最低版本保持兼容；已核对它支持 Windows 安装器专用平台键。
 
