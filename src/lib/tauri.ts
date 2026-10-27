@@ -78,3 +78,7 @@ export async function copyConnectionDetail(
 ): Promise<void> {
   return invoke("copy_connection_detail", { field });
 }
+
+export async function setTrayLanguage(language: "en" | "zh"): Promise<void> {
+  return invoke("set_tray_language", { language });
+}

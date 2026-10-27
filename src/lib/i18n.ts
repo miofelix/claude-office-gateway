@@ -15,6 +15,15 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  "Open GitHub repository": "打开 GitHub 仓库",
+  "Current user · localhost only": "当前用户 · 仅限本机",
+  "Model provider": "模型供应商",
+  "Office connection": "Office 连接",
+  "In Office, choose Gateway → Anthropic → x-api-key. Paste the gateway token without Bearer.":
+    "在 Office 中选择 Gateway → Anthropic → x-api-key。粘贴网关令牌时无需 Bearer 前缀。",
+  "Changes use the Save provider button above.": "修改后点击上方「保存配置」。",
+  Copied: "已复制",
+
   "Office Gateway": "Office Gateway",
   "Private model bridge": "本地模型网关",
   "Close navigation": "关闭导航",

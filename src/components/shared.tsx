@@ -1,64 +1,7 @@
-import { Check, ChevronRight, Clipboard } from "lucide-react";
 import { useState } from "react";
-import { t } from "../lib/i18n";
+import { Check, Clipboard } from "lucide-react";
 import { copyConnectionDetail } from "../lib/tauri";
-export function NavItem({
-  active,
-  icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>
-      {icon}
-      <span>{t(label)}</span>
-      {active && <ChevronRight size={15} />}
-    </button>
-  );
-}
-export function StepHeading({
-  number,
-  title,
-  done,
-}: {
-  number: string;
-  title: string;
-  done: boolean;
-}) {
-  return (
-    <div className="step-heading">
-      <span className={done ? "step-number done" : "step-number"}>
-        {done ? <Check size={15} /> : number}
-      </span>
-      <h2>{t(title)}</h2>
-      {done && <span className="done-label">{t("Complete")}</span>}
-    </div>
-  );
-}
-export function GuideStep({
-  number,
-  title,
-  text,
-}: {
-  number: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="guide-step">
-      <span className="guide-number">{number}</span>
-      <div>
-        <h2>{t(title)}</h2>
-        <p>{t(text)}</p>
-      </div>
-    </div>
-  );
-}
+import { t } from "../lib/i18n";
 export function CopyRow({
   label,
   value,
@@ -86,20 +29,31 @@ export function CopyRow({
   }
   return (
     <div className="copy-row">
-      <div className="copy-label">
+      <span className="copy-label">
         {icon}
-        <span>{t(label)}</span>
+        {t(label)}
+      </span>
+      <div>
+        <code className="copy-value">{value}</code>
+        <button
+          className="icon-button"
+          onClick={() => void copy()}
+          disabled={disabled}
+          aria-label={"Copy " + label}
+          title={
+            copied
+              ? t("Copied")
+              : disabled
+                ? t("Connect first")
+                : "Copy " + label
+          }
+        >
+          {copied ? <Check size={14} /> : <Clipboard size={14} />}
+        </button>
+        <span className="sr-only" role="status">
+          {copied ? t("Copied") : ""}
+        </span>
       </div>
-      <span className="copy-value">{t(value)}</span>
-      <button
-        className="icon-button copy-button"
-        onClick={() => void copy()}
-        disabled={disabled}
-        aria-label={"Copy " + label}
-        title={disabled ? t("Connect first") : "Copy " + label}
-      >
-        {copied ? <Check size={15} /> : <Clipboard size={15} />}
-      </button>
     </div>
   );
 }

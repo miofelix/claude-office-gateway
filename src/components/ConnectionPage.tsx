@@ -1,406 +1,380 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   Check,
-  ChevronRight,
+  ChevronDown,
   CircleAlert,
-  CircleHelp,
-  FileKey2,
-  Gauge,
   KeyRound,
   Link2,
-  LockKeyhole,
+  LoaderCircle,
   Play,
-  RefreshCw,
   Settings2,
   ShieldCheck,
   StopCircle,
   X,
 } from "lucide-react";
-import { useMemo } from "react";
-import { providerHost } from "../lib/config";
+import { useGateway } from "../hooks/useGateway";
+import { phaseLabel } from "../lib/config";
 import { t } from "../lib/i18n";
-import type { AppState, GatewayConfig, Protocol } from "../lib/tauri";
-import { CopyRow, StepHeading } from "./shared";
-export function ConnectionPage(props: {
-  state: AppState;
-  draft: GatewayConfig;
-  upstreamKey: string;
-  setDraft: (config: GatewayConfig) => void;
-  setUpstreamKey: (value: string) => void;
-  busy: string | undefined;
-  notice: { kind: "success" | "error"; text: string } | null;
-  onDismiss: () => void;
-  onCopyError: (text: string) => void;
-  editable: boolean;
-  validationError: string | null;
-  canConnect: boolean;
-  advancedOpen: boolean;
-  setAdvancedOpen: (value: boolean) => void;
+import type { GatewayConfig, Protocol } from "../lib/tauri";
+import { CopyRow } from "./shared";
+
+type Gateway = ReturnType<typeof useGateway>;
+export function ConnectionPage({
+  gateway: g,
+  onInstall,
+  onDelete,
+}: {
+  gateway: Gateway;
   onInstall: () => void;
   onDelete: () => void;
-  onSave: () => Promise<unknown>;
-  onConnect: () => Promise<unknown>;
-  onStop: () => void;
-  onRecheck: () => void;
-  onNavigateGuide: () => void;
 }) {
-  const { state, draft, upstreamKey, setDraft, setUpstreamKey, busy, notice } =
-    props;
+  const { state, draft, setDraft, busy, notice } = g;
   const ready = state.runtime.phase === "ready";
-  const saving = busy === "saving";
-  const actionLabel = ready
-    ? t("Connected")
-    : busy === "connecting"
-      ? t("Connecting…")
-      : t("Connect gateway");
-  const connectionRows = useMemo(
-    () => [
-      {
-        label: "Gateway URL",
-        field: "url" as const,
-        value: `https://localhost:${state.config.port}`,
-        icon: <Link2 size={15} />,
-      },
-      {
-        label: "Gateway token",
-        field: "token" as const,
-        value: state.gateway_token
-          ? t("Stored securely")
-          : t("Generated on save"),
-        icon: <KeyRound size={15} />,
-      },
-      {
-        label: "Office model ID",
-        field: "model" as const,
-        value: state.config.public_model || "Not configured",
-        icon: <Gauge size={15} />,
-      },
-    ],
-    [state.config.port, state.config.public_model, state.gateway_token],
-  );
-
+  const pending =
+    busy === "connecting" ||
+    busy === "rechecking" ||
+    ["starting", "checking"].includes(state.runtime.phase);
+  const patch = (value: Partial<GatewayConfig>) =>
+    setDraft({ ...draft, ...value });
   return (
     <div className="content-wrap">
-      <div className="page-intro">
-        <div>
-          <p className="eyebrow">{t("Three steps to Office")}</p>
-          <h1>{t("Bring your model into PowerPoint, Excel, and Word.")}</h1>
-          <p className="lede">
-            {t(
-              " A local HTTPS gateway translates the Claude Office add-in protocol into the provider API you already use. ",
-            )}
-          </p>
-        </div>
-        <div className={`status-orb ${ready ? "ready" : ""}`}>
-          <ShieldCheck size={30} />
-          <span>{ready ? t("Live") : t("Local")}</span>
-        </div>
+      <div className="certificate-row">
+        <ShieldCheck
+          size={17}
+          className={state.certificate.trusted ? "success-text" : "muted"}
+        />
+        <span>
+          {t(
+            state.certificate.trusted
+              ? "Localhost is trusted"
+              : "Secure localhost connection required",
+          )}
+        </span>
+        <span className="certificate-scope">
+          {t("Current user · localhost only")}
+        </span>
+        {!state.certificate.trusted && (
+          <button
+            className="button secondary small"
+            onClick={onInstall}
+            disabled={!!busy}
+          >
+            {t(busy === "installing" ? "Installing…" : "Install certificate")}
+          </button>
+        )}
       </div>
-
       {notice && (
-        <div className={`notice ${notice.kind}`}>
-          <span>
-            {notice.kind === "error" ? (
-              <CircleAlert size={17} />
-            ) : (
-              <Check size={17} />
-            )}
-          </span>
+        <div className={"notice " + notice.kind} role="status">
+          {notice.kind === "error" ? (
+            <CircleAlert size={16} />
+          ) : (
+            <Check size={16} />
+          )}
           <p>{t(notice.text)}</p>
           <button
             className="icon-button"
-            onClick={props.onDismiss}
+            onClick={() => g.setNotice(null)}
             aria-label={t("Dismiss")}
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
       )}
-
-      <div className="status-banner">
-        <div className="status-banner-icon">
-          <LockKeyhole size={21} />
-        </div>
-        <div>
-          <strong>
-            {state.certificate.trusted
-              ? t("Localhost is trusted")
-              : t("Secure localhost connection required")}
-          </strong>
-          <p>
-            {state.certificate.trusted
-              ? t("The gateway can accept Office requests over HTTPS.")
-              : t(
-                  "Install the per-user certificate before connecting a provider.",
-                )}
-          </p>
-        </div>
-        <div className="status-banner-action">
-          {state.certificate.trusted ? (
-            <span className="check-label">
-              <Check size={15} />
-              {t(" Trusted ")}
+      <section
+        className="section provider-section"
+        aria-labelledby="provider-title"
+      >
+        <h1 id="provider-title">{t("Model provider")}</h1>
+        <fieldset className="form-grid" disabled={!g.editable}>
+          <label className="field">
+            <span>{t("API base URL")}</span>
+            <input
+              type="url"
+              value={draft.base_url}
+              onChange={(event) => patch({ base_url: event.target.value })}
+              placeholder="https://api.example.com"
+              spellCheck={false}
+              autoCapitalize="off"
+            />
+          </label>
+          <label className="field">
+            <span>{t("Provider protocol")}</span>
+            <select
+              value={draft.upstream_protocol}
+              onChange={(event) =>
+                patch({
+                  upstream_protocol: event.target.value as Protocol,
+                  auth_header:
+                    event.target.value === "anthropic"
+                      ? "x-api-key"
+                      : "authorization",
+                })
+              }
+            >
+              <option value="anthropic">Anthropic Messages</option>
+              <option value="openai_chat">OpenAI Chat Completions</option>
+              <option value="openai_responses">OpenAI Responses</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>{t("Provider model")}</span>
+            <input
+              value={draft.upstream_model}
+              onChange={(event) =>
+                patch({ upstream_model: event.target.value })
+              }
+              placeholder={t("Exact model ID")}
+              spellCheck={false}
+            />
+          </label>
+          <label className="field">
+            <span>{t("Provider API key")}</span>
+            <input
+              type="password"
+              value={g.upstreamKey}
+              onChange={(event) => g.setUpstreamKey(event.target.value)}
+              placeholder={t(
+                state.has_upstream_key
+                  ? "Saved securely · enter a new key to replace"
+                  : "Paste the provider key",
+              )}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+        </fieldset>
+        <div className="connection-controls">
+          <div className="runtime-status" aria-live="polite">
+            {pending ? (
+              <LoaderCircle size={15} className="spin" />
+            ) : (
+              <span
+                className={
+                  "status-dot " +
+                  (ready
+                    ? "ready"
+                    : state.runtime.phase === "failed"
+                      ? "failed"
+                      : "")
+                }
+              />
+            )}
+            <span>
+              {t(
+                pending ? "Checking provider" : phaseLabel(state.runtime.phase),
+              )}
             </span>
-          ) : (
+            {ready && state.runtime.verification_ms != null && (
+              <small>{state.runtime.verification_ms} ms</small>
+            )}
+          </div>
+          <div className="button-row">
             <button
-              className="button primary small"
-              onClick={props.onInstall}
+              className="button secondary"
+              onClick={() => void g.save()}
+              disabled={!g.editable || !!g.error}
+            >
+              {t(busy === "saving" ? "Saving…" : "Save provider")}
+            </button>
+            {state.runtime.running || busy === "connecting" ? (
+              <>
+                <button
+                  className="button secondary"
+                  onClick={() => void g.recheck()}
+                  disabled={!!busy || pending}
+                >
+                  {t("Recheck")}
+                </button>
+                <button
+                  className="button secondary"
+                  onClick={() => void g.stop()}
+                  disabled={busy === "stopping"}
+                >
+                  <StopCircle size={14} />
+                  {t(pending ? "Cancel" : "Stop")}
+                </button>
+              </>
+            ) : (
+              <button
+                className="button primary"
+                onClick={() => void g.connect()}
+                disabled={!g.canConnect}
+                title={g.error ? t(g.error) : undefined}
+              >
+                <Play size={13} />
+                {t("Connect gateway")}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+      <section
+        className="section office-section"
+        aria-labelledby="office-title"
+      >
+        <h2 id="office-title">{t("Office connection")}</h2>
+        <div className="connection-list">
+          <CopyRow
+            field="url"
+            label="Gateway URL"
+            value={"https://localhost:" + state.config.port}
+            icon={<Link2 size={14} />}
+            disabled={!ready}
+            onError={(text) => g.setNotice({ kind: "error", text })}
+          />
+          <CopyRow
+            field="token"
+            label="Gateway token"
+            value={state.gateway_token ? "••••••••••••" : "—"}
+            icon={<KeyRound size={14} />}
+            disabled={!ready}
+            onError={(text) => g.setNotice({ kind: "error", text })}
+          />
+          <CopyRow
+            field="model"
+            label="Office model ID"
+            value={state.config.public_model}
+            icon={null}
+            disabled={!ready}
+            onError={(text) => g.setNotice({ kind: "error", text })}
+          />
+        </div>
+        <p className="help-text">
+          {t(
+            "In Office, choose Gateway → Anthropic → x-api-key. Paste the gateway token without Bearer.",
+          )}
+        </p>
+      </section>
+      <details className="advanced-settings">
+        <summary>
+          <Settings2 size={15} />
+          <span>{t("Advanced settings")}</span>
+          <ChevronDown size={14} />
+        </summary>
+        <fieldset className="advanced-grid" disabled={!g.editable}>
+          <label className="field">
+            <span>{t("Office model ID")}</span>
+            <input
+              value={draft.public_model}
+              onChange={(event) => patch({ public_model: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>{t("Display name")}</span>
+            <input
+              value={draft.display_name}
+              onChange={(event) => patch({ display_name: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>{t("Local port")}</span>
+            <input
+              type="number"
+              min={1024}
+              max={65535}
+              value={draft.port}
+              onChange={(event) => patch({ port: Number(event.target.value) })}
+            />
+          </label>
+          <label className="field">
+            <span>{t("Timeout (seconds)")}</span>
+            <input
+              type="number"
+              min={1}
+              max={600}
+              value={draft.timeout_seconds}
+              onChange={(event) =>
+                patch({ timeout_seconds: Number(event.target.value) })
+              }
+            />
+          </label>
+          <label className="field">
+            <span>{t("Upstream authentication")}</span>
+            <select
+              value={draft.auth_header}
+              onChange={(event) =>
+                patch({
+                  auth_header: event.target
+                    .value as GatewayConfig["auth_header"],
+                })
+              }
+            >
+              <option value="authorization">Authorization: Bearer</option>
+              <option value="x-api-key">x-api-key</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>{t("OpenAI token field")}</span>
+            <select
+              value={draft.max_tokens_field}
+              onChange={(event) =>
+                patch({
+                  max_tokens_field: event.target
+                    .value as GatewayConfig["max_tokens_field"],
+                })
+              }
+            >
+              <option value="max_completion_tokens">
+                max_completion_tokens
+              </option>
+              <option value="max_tokens">max_tokens</option>
+            </select>
+          </label>
+          <label className="field origin-field">
+            <span>{t("Allowed Office origin")}</span>
+            <input
+              value={draft.allowed_origins[0] ?? ""}
+              onChange={(event) =>
+                patch({ allowed_origins: [event.target.value] })
+              }
+            />
+          </label>
+        </fieldset>
+        <div className="advanced-footer">
+          <span>{t("Changes use the Save provider button above.")}</span>
+          {state.certificate.exists && (
+            <button
+              className="text-button danger-text"
+              onClick={onDelete}
               disabled={!!busy}
             >
-              {busy === "installing"
-                ? t("Installing…")
-                : t("Install certificate")}
+              {t("Remove certificate…")}
             </button>
           )}
         </div>
-      </div>
-
-      <div className="step-grid">
-        <section className="card step-card provider-card">
-          <StepHeading
-            number="02"
-            title={t("Connect a provider")}
-            done={
-              state.has_upstream_key &&
-              !!draft.upstream_model &&
-              !!draft.base_url
-            }
-          />
-          <p className="card-copy">
-            {t(
-              " Enter the API endpoint and model that should answer requests from Office. ",
-            )}
-          </p>
-          <fieldset className="form-grid" disabled={!props.editable}>
-            <label className="field wide">
-              <span>{t("API base URL")}</span>
-              <input
-                value={draft.base_url}
-                onChange={(e) =>
-                  setDraft({ ...draft, base_url: e.target.value })
-                }
-                placeholder={t("https://api.example.com")}
-              />
-            </label>
-            <label className="field">
-              <span>{t("Provider protocol")}</span>
-              <select
-                value={draft.upstream_protocol}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    upstream_protocol: e.target.value as Protocol,
-                    auth_header:
-                      e.target.value === "anthropic"
-                        ? "x-api-key"
-                        : "authorization",
-                  })
-                }
-              >
-                <option value="anthropic">{t("Anthropic Messages")}</option>
-                <option value="openai_chat">
-                  {t("OpenAI Chat Completions")}
-                </option>
-                <option value="openai_responses">
-                  {t("OpenAI Responses")}
-                </option>
-              </select>
-            </label>
-            <label className="field">
-              <span>{t("Provider model")}</span>
-              <input
-                value={draft.upstream_model}
-                onChange={(e) =>
-                  setDraft({ ...draft, upstream_model: e.target.value })
-                }
-                placeholder={t("Exact model ID")}
-              />
-            </label>
-            <label className="field wide">
-              <span>{t("Provider API key")}</span>
-              <input
-                type="password"
-                value={upstreamKey}
-                onChange={(e) => setUpstreamKey(e.target.value)}
-                placeholder={
-                  state.has_upstream_key
-                    ? t("Saved securely · enter a new key to replace")
-                    : t("Paste the provider key")
-                }
-              />
-            </label>
-          </fieldset>
-          <div className="card-actions">
-            <span className="muted-inline">
-              <LockKeyhole size={14} />
-              {t(" Stored in the system credential vault ")}
-            </span>
-            <button
-              className="button secondary"
-              onClick={() => void props.onSave()}
-              disabled={!props.editable || !!props.validationError}
+      </details>
+      <footer className="page-footer">
+        <p>
+          {t(
+            "Connect sends two short provider checks. Your provider may bill these requests.",
+          )}
+        </p>
+        <div>
+          <span>{t("Official add-ins")}</span>
+          {[
+            { name: "PowerPoint", id: "WA200010001" },
+            { name: "Excel", id: "WA200009404" },
+            { name: "Word", id: "WA200010453" },
+          ].map((item) => (
+            <a
+              key={item.id}
+              href={
+                "https://marketplace.microsoft.com/en-us/product/" + item.id
+              }
+              onClick={(event) => {
+                event.preventDefault();
+                void openUrl(
+                  "https://marketplace.microsoft.com/en-us/product/" + item.id,
+                ).catch((error) =>
+                  g.setNotice({ kind: "error", text: String(error) }),
+                );
+              }}
             >
-              {saving ? t("Saving…") : t("Save provider")}
-            </button>
-          </div>
-        </section>
-
-        <section className="card step-card office-card">
-          <StepHeading
-            number="03"
-            title={t("Connect the Office add-in")}
-            done={ready}
-          />
-          <p className="card-copy">
-            {t(
-              " Copy these values into the Gateway sign-in panel in your Claude Office add-in. ",
-            )}
-          </p>
-          <div className="connection-list">
-            {connectionRows.map((row) => (
-              <CopyRow
-                key={row.label}
-                {...row}
-                disabled={!ready}
-                onError={props.onCopyError}
-              />
-            ))}
-          </div>
-          <div className="hint-box">
-            <CircleHelp size={16} />
-            <span>
-              {t(" Use ")}
-              <strong>{t("Anthropic")}</strong>
-              {t(" format and")} <strong>{t("x-api-key")}</strong>
-              {t(
-                " authentication. The gateway token is separate from your provider key. ",
-              )}
-            </span>
-          </div>
-          <div className="card-actions">
-            <button className="text-button" onClick={props.onNavigateGuide}>
-              {t(" Read the setup guide ")}
-              <ChevronRight size={15} />
-            </button>
-            <div className="connection-actions">
-              {state.runtime.running ? (
-                <>
-                  <button
-                    className="button secondary"
-                    onClick={props.onRecheck}
-                    disabled={!!busy}
-                  >
-                    <RefreshCw size={15} />
-                    {t(" Recheck ")}
-                  </button>
-                  <button
-                    className="button danger"
-                    onClick={props.onStop}
-                    disabled={busy === "stopping"}
-                  >
-                    <StopCircle size={15} />
-                    {t(" Stop ")}
-                  </button>
-                </>
-              ) : busy === "connecting" ? (
-                <button className="button secondary" onClick={props.onStop}>
-                  {t("Cancel connection")}
-                </button>
-              ) : (
-                <button
-                  className="button primary"
-                  onClick={() => void props.onConnect()}
-                  disabled={!props.canConnect}
-                >
-                  {actionLabel}
-                  <Play size={15} fill="currentColor" />
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="card advanced-card">
-        <button
-          className="disclosure"
-          onClick={() => props.setAdvancedOpen(!props.advancedOpen)}
-        >
-          <div>
-            <Settings2 size={17} />
-            <span>{t("Advanced gateway settings")}</span>
-          </div>
-          <ChevronRight
-            size={17}
-            className={props.advancedOpen ? "rotate-90" : ""}
-          />
-        </button>
-        {props.advancedOpen && (
-          <fieldset className="advanced-fields" disabled={!props.editable}>
-            <label className="field">
-              <span>{t("Office model ID")}</span>
-              <input
-                value={draft.public_model}
-                onChange={(e) =>
-                  setDraft({ ...draft, public_model: e.target.value })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>{t("Display name")}</span>
-              <input
-                value={draft.display_name}
-                onChange={(e) =>
-                  setDraft({ ...draft, display_name: e.target.value })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>{t("Local port")}</span>
-              <input
-                type="number"
-                min={1024}
-                max={65535}
-                value={draft.port}
-                onChange={(e) =>
-                  setDraft({ ...draft, port: Number(e.target.value) })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>{t("Timeout (seconds)")}</span>
-              <input
-                type="number"
-                min={1}
-                max={600}
-                value={draft.timeout_seconds}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    timeout_seconds: Number(e.target.value),
-                  })
-                }
-              />
-            </label>
-          </fieldset>
-        )}
-      </section>
-
-      <p className="validation-note">
-        {(props.validationError ? t(props.validationError) : null) ??
-          (!state.certificate.trusted
-            ? t("Install the localhost certificate to enable connection.")
-            : t(
-                "Connect sends two short provider checks. Your provider may bill these requests.",
-              ))}
-      </p>
-      <div className="footer-note">
-        <FileKey2 size={16} />
-        <span>
-          {t(" Requests go from Office to this device and then to")}{" "}
-          <strong>{t(providerHost(draft.base_url))}</strong>
-          {t(". Document contents are not stored by this client. ")}
-        </span>
-      </div>
+              {item.name}
+            </a>
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }

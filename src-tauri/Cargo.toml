@@ -5,7 +5,7 @@ description = "A private local gateway for Claude Office add-ins"
 authors = ["Mio Felix"]
 license = "MIT"
 edition = "2021"
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 
 [lib]
 name = "claude_office_gateway_lib"

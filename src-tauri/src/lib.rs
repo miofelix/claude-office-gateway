@@ -10,6 +10,7 @@ mod runtime;
 mod stream;
 #[cfg(test)]
 mod tests;
+mod tray;
 
 use certificate::CertificateManager;
 use config::GatewayConfig;
@@ -17,11 +18,7 @@ use gateway::GatewayRouter;
 use runtime::Runtime;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::{TrayIconBuilder, TrayIconEvent},
-    Manager,
-};
+use tauri::Manager;
 
 #[derive(Clone, Default)]
 struct Vault {
@@ -34,6 +31,8 @@ pub struct AppState {
     runtime: Runtime,
     vault: Arc<Mutex<Vault>>,
     settings: Arc<Mutex<()>>,
+    tray_language: Arc<Mutex<String>>,
+    certificate_trusted: Arc<std::sync::atomic::AtomicBool>,
 }
 #[derive(Serialize)]
 struct CertificateState {
@@ -83,13 +82,16 @@ fn snapshot_sync(app: &AppState) -> Result<ClientState, String> {
     let config = GatewayConfig::load(&paths::config_path())
         .map_err(|e| format!("Could not load saved settings: {e}"))?;
     let vault = load_vault(app)?;
+    let trusted = CertificateManager::trusted();
+    app.certificate_trusted
+        .store(trusted, std::sync::atomic::Ordering::Relaxed);
     Ok(ClientState {
         config,
         has_upstream_key: vault.key.is_some(),
         gateway_token: vault.token,
         certificate: CertificateState {
             exists: CertificateManager::exists(),
-            trusted: CertificateManager::trusted(),
+            trusted,
             subject: certificate::SUBJECT,
         },
         runtime: app.runtime.snapshot(),
@@ -246,6 +248,22 @@ fn copy_connection_detail(app: tauri::State<'_, AppState>, field: &str) -> Resul
         .set_text(text)
         .map_err(|e| e.to_string())
 }
+#[tauri::command]
+fn set_tray_language(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    language: String,
+) -> Result<(), String> {
+    if !matches!(language.as_str(), "en" | "zh") {
+        return Err("Unsupported language".into());
+    }
+    *state
+        .tray_language
+        .lock()
+        .map_err(|_| "Tray language unavailable")? = language;
+    tray::refresh(&app);
+    Ok(())
+}
 fn show(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
@@ -273,7 +291,8 @@ pub fn run() {
             connect_gateway,
             stop_gateway,
             recheck_gateway,
-            copy_connection_detail
+            copy_connection_detail,
+            set_tray_language
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -296,42 +315,9 @@ pub fn run() {
                     );
                 }
             }
-            let open = MenuItem::with_id(
-                app,
-                "show",
-                "Open Claude Office Gateway",
-                true,
-                None::<&str>,
-            )?;
-            let stop = MenuItem::with_id(app, "stop", "Stop gateway", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &stop, &quit])?;
-            let icon = app
-                .default_window_icon()
-                .cloned()
-                .expect("Application icon is missing");
-            TrayIconBuilder::new()
-                .icon(icon)
-                .tooltip("Claude Office Gateway")
-                .menu(&menu)
-                .on_menu_event(|app, event| match event.id().as_ref() {
-                    "show" => show(app),
-                    "stop" => {
-                        let runtime = app.state::<AppState>().runtime.clone();
-                        tauri::async_runtime::spawn(async move {
-                            runtime.stop().await;
-                        });
-                    }
-                    "quit" => app.exit(0),
-                    _ => (),
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::DoubleClick { .. } = event {
-                        show(tray.app_handle());
-                    }
-                })
-                .build(app)?;
+            tray::setup(app)?;
             let runtime = app.state::<AppState>().runtime.clone();
+            let certificate_trusted = app.state::<AppState>().certificate_trusted.clone();
             tauri::async_runtime::spawn(async move {
                 loop {
                     tokio::time::sleep(std::time::Duration::from_secs(15)).await;
@@ -340,6 +326,7 @@ pub fn run() {
                             tauri::async_runtime::spawn_blocking(CertificateManager::trusted)
                                 .await
                                 .unwrap_or(false);
+                        certificate_trusted.store(trusted, std::sync::atomic::Ordering::Relaxed);
                         if !trusted {
                             runtime.stop().await;
                             runtime.needs_trust();
