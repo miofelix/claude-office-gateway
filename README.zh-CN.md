@@ -20,6 +20,8 @@
 2. 填写 HTTPS API 基础地址、协议、供应商密钥和准确的模型 ID。「保存」仅保存；「保存并连接」会保存并发送两次简短检测请求，可能产生少量费用。
 3. 在 Office 的 Claude 加载项选择 Gateway、Anthropic 格式、x-api-key 认证，复制客户端提供的地址、网关令牌和 Office 模型 ID。令牌无需 `Bearer` 前缀。
 
+Office 模型 ID 必须以 `claude` 开头，例如 `claude-office-custom`。这是映射到供应商模型的网关别名，真实模型 ID 仍填在「供应商模型」。若 Office 提示 “Enter a Claude model name or a gateway alias that references one”，请检查此别名。
+
 使用期间保持客户端运行。关闭窗口后仍继续服务；退出应用后停止。再次启动时点击连接即可，无需重新输入已保存密钥。
 
 密钥保存在 macOS 钥匙串或 Windows 凭据管理器。应用没有遥测，也不保存请求正文或文档内容。

@@ -15,6 +15,11 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  'Office requires a model ID starting with "claude", such as "claude-office-custom". This gateway alias maps to your provider model.':
+    "Office 要求模型 ID 以「claude」开头，例如「claude-office-custom」。此网关别名会映射到供应商模型。",
+  'Office requires the model ID to start with "claude", such as "claude-office-custom". Use this gateway alias in Office; keep the actual model ID in Provider model.':
+    "Office 要求模型 ID 以「claude」开头，例如「claude-office-custom」。在 Office 中使用这个网关别名；真实模型 ID 填在左侧「供应商模型」。",
+
   "Version and updates": "版本与更新",
   Close: "关闭",
   "Beta channel": "测试通道",

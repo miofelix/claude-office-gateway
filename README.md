@@ -22,6 +22,8 @@ Requires macOS 13+ or Windows 10/11 with WebView2. The interface supports Englis
 2. Enter an HTTPS API base URL, protocol, provider key, and exact model ID. **Save** saves without sending requests; **Save and connect** saves and sends two small checks that your provider may bill.
 3. In the Claude Office add-in, choose **Gateway**, **Anthropic** format, and **x-api-key** authentication. Copy the URL, gateway token, and Office model ID from the client. Paste the token without `Bearer`.
 
+The Office model ID must start with `claude`, for example `claude-office-custom`. It is a gateway alias mapped to your actual provider model; keep the provider’s exact ID in **Provider model**. If Office reports “Enter a Claude model name or a gateway alias that references one”, check this alias.
+
 Keep the client running while using Office. Closing its window keeps the connection alive; quitting stops it. Reopen from the Dock or tray. After relaunch, click **Connect gateway**; a saved provider key does not need to be re-entered.
 
 Keys use macOS Keychain or Windows Credential Manager. This client has no telemetry and does not store request bodies or document contents. Requests reach your configured provider; Office and that provider have their own data policies.

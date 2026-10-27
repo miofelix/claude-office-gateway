@@ -363,10 +363,18 @@ export function ConnectionPage({
                   <span>{t("Office model ID")}</span>
                   <input
                     value={draft.public_model}
+                    aria-describedby="office-model-alias-help"
+                    placeholder="claude-office-custom"
+                    spellCheck={false}
                     onChange={(event) =>
                       patch({ public_model: event.target.value })
                     }
                   />
+                  <small id="office-model-alias-help" className="field-hint">
+                    {t(
+                      'Office requires a model ID starting with "claude", such as "claude-office-custom". This gateway alias maps to your provider model.',
+                    )}
+                  </small>
                 </label>
                 <label className="field">
                   <span>{t("Display name")}</span>
@@ -544,6 +552,14 @@ export function ConnectionPage({
                 onError={showError}
               />
             </div>
+            <p className="model-alias-hint">
+              <Info size={14} />
+              <span>
+                {t(
+                  'Office requires the model ID to start with "claude", such as "claude-office-custom". Use this gateway alias in Office; keep the actual model ID in Provider model.',
+                )}
+              </span>
+            </p>
             <p className="token-hint">
               <Info size={14} />
               <span>

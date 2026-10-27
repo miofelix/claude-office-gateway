@@ -1379,3 +1379,26 @@ dialog .certificate-platform-note {
     flex-wrap: wrap;
   }
 }
+
+.field-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.model-alias-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--surface-quiet);
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.model-alias-hint > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
