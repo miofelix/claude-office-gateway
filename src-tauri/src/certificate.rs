@@ -180,6 +180,13 @@ fn run(command: &mut Command) -> Result<()> {
     }
 }
 fn background_output(command: &mut Command) -> std::io::Result<std::process::Output> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        // A desktop GUI has no parent console. Without this flag, launching
+        // PowerShell or certutil for periodic checks can briefly open one.
+        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
     command.output()
 }
 #[cfg(target_os = "windows")]
