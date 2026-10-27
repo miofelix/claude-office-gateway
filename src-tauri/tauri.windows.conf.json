@@ -20,6 +20,11 @@
     "targets": [
       "nsis",
       "msi"
-    ]
+    ],
+    "windows": {
+      "wix": {
+        "version": "0.2.1"
+      }
+    }
   }
 }

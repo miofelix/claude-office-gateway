@@ -11,6 +11,7 @@ mod stream;
 #[cfg(test)]
 mod tests;
 mod tray;
+mod updates;
 
 use certificate::CertificateManager;
 use config::GatewayConfig;
@@ -279,12 +280,14 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| show(app)))
         .manage(AppState::default())
+        .manage(updates::Updates::default())
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_app_state,
             install_certificate,
@@ -294,7 +297,10 @@ pub fn run() {
             stop_gateway,
             recheck_gateway,
             copy_connection_detail,
-            set_tray_language
+            set_tray_language,
+            updates::get_update_state,
+            updates::check_for_updates,
+            updates::install_app_update
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

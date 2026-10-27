@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { Github, RefreshCw, Sun, Moon, Monitor } from "lucide-react";
+import {
+  Github,
+  RefreshCw,
+  Sun,
+  Moon,
+  Monitor,
+  LoaderCircle,
+} from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t, useLanguage } from "./lib/i18n";
 import { useAppearance, type Appearance } from "./hooks/useAppearance";
+import { useAppUpdates } from "./hooks/useAppUpdates";
+import { UpdateDialog } from "./components/UpdateDialog";
 import { useGateway } from "./hooks/useGateway";
 import { ConnectionPage } from "./components/ConnectionPage";
 import { setTrayLanguage } from "./lib/tauri";
@@ -12,6 +21,8 @@ export default function App() {
   const [language, setLanguage] = useLanguage();
   const { appearance, setAppearance } = useAppearance();
   const gateway = useGateway();
+  const updates = useAppUpdates();
+  const [updatesOpen, setUpdatesOpen] = useState(false);
   useEffect(() => {
     void setTrayLanguage(language).catch(() => {});
   }, [language]);
@@ -26,7 +37,17 @@ export default function App() {
       <header className="window-header" data-tauri-drag-region>
         <div className="brand" data-tauri-drag-region>
           <img src={logo} alt="" />
-          <span>Claude Office Gateway</span>
+          <span className="brand-name">Claude Office Gateway</span>
+          <button
+            className="version-button"
+            onClick={() => setUpdatesOpen(true)}
+            title={t("Version and updates")}
+            aria-label={t("Version and updates")}
+          >
+            <span>v{updates.state.current_version}</span>
+            {updates.hasUpdate && <span className="update-dot" />}
+            {updates.busy && <LoaderCircle size={11} className="spin" />}
+          </button>
           {gateway.state.test_mode && (
             <span className="test-mode-label">{t("Test session")}</span>
           )}
@@ -100,6 +121,11 @@ export default function App() {
           onDelete={() => setConfirm("delete")}
         />
       </main>
+      <UpdateDialog
+        open={updatesOpen}
+        onClose={() => setUpdatesOpen(false)}
+        updates={updates}
+      />
       <dialog
         ref={dialog}
         onCancel={() => setConfirm(null)}

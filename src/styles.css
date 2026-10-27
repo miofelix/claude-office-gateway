@@ -1189,3 +1189,193 @@ dialog .certificate-platform-note {
     max-width: 90px;
   }
 }
+.brand {
+  min-width: 0;
+}
+.brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-actions {
+  flex-shrink: 0;
+}
+.version-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  background: var(--surface-quiet);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.version-button:hover {
+  border-color: var(--line-hover);
+  color: var(--accent-text);
+}
+.update-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success-dot);
+}
+.update-dialog {
+  width: min(530px, calc(100% - 36px));
+}
+.update-dialog-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.update-dialog-heading > img {
+  width: 39px;
+  height: 39px;
+  border-radius: 10px;
+}
+.update-dialog-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.update-dialog-heading h2 {
+  font-size: 16px;
+}
+.update-dialog .update-version {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 4px 0 0;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  color: var(--secondary);
+}
+.update-dialog .scope-chip {
+  margin-left: 0;
+  font-family: inherit;
+  font-size: 10px;
+}
+.update-dialog-heading > .icon-button {
+  align-self: flex-start;
+}
+.update-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 21px 0 16px;
+  padding: 11px 12px;
+  border-radius: 7px;
+  background: var(--surface-soft);
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.update-status > svg {
+  flex-shrink: 0;
+}
+.update-status.error {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.update-release > strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.release-notes {
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--secondary);
+  margin: 9px 0 15px;
+  padding: 11px 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--surface-quiet);
+}
+.update-progress {
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.update-progress progress {
+  width: 100%;
+  height: 7px;
+  accent-color: var(--primary-bg);
+}
+.update-progress progress::-webkit-progress-bar {
+  background: var(--line);
+  border-radius: 5px;
+}
+.update-progress progress::-webkit-progress-value {
+  background: var(--primary-bg);
+  border-radius: 5px;
+}
+.auto-update-check {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--secondary);
+}
+.auto-update-check input {
+  accent-color: var(--primary-bg);
+}
+.update-dialog .update-install-note,
+.update-dialog .update-checked-at {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+.update-dialog-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 16px;
+  margin-top: 19px;
+}
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  color: var(--accent-text);
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+@media (max-width: 920px) {
+  .test-mode-label {
+    display: none;
+  }
+  .brand {
+    gap: 6px;
+  }
+  .version-button {
+    font-size: 10px;
+    padding: 4px;
+  }
+}
+@media (max-width: 620px) {
+  .brand-name {
+    max-width: 140px;
+  }
+  .version-button {
+    font-size: 9px;
+  }
+  .update-dialog-actions {
+    align-items: flex-start;
+  }
+  .update-dialog-actions > .button-row {
+    flex-wrap: wrap;
+  }
+}

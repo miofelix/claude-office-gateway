@@ -15,6 +15,43 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  "Version and updates": "版本与更新",
+  Close: "关闭",
+  "Beta channel": "测试通道",
+  "Stable channel": "稳定通道",
+  "Checking for updates…": "正在检查更新…",
+  "You are up to date.": "当前已是最新版本。",
+  "A new version is available.": "发现新版本。",
+  "Downloading and verifying update…": "正在下载并验证更新签名…",
+  "Installing update…": "正在安装更新…",
+  "Restarting…": "正在重启…",
+  "Updates are verified with a signing key before installation.":
+    "安装前会校验更新签名，确保更新包来源可信。",
+  "Available version": "可用版本",
+  "Last checked": "上次检查",
+  "Check for updates on startup": "启动时检查更新",
+  "Installing an update restarts this app and pauses the local gateway.":
+    "安装更新会重启应用并短暂中断本地网关，请先完成当前 Office 任务。",
+  "Release notes": "更新说明",
+  "Download from GitHub": "前往 GitHub 下载",
+  "Updating…": "正在更新…",
+  "Checking…": "正在检查…",
+  "Install and restart": "安装并重启",
+  "Check for updates": "检查更新",
+  "Could not check for updates. Check your network and try again.":
+    "暂时无法检查更新，请检查网络后重试。",
+  "Update endpoint configuration is invalid.": "更新源配置无效。",
+  "Could not initialize signed updates.": "无法初始化签名更新。",
+  "An update operation is already running.": "已有更新任务正在进行。",
+  "Update details changed. Check for updates again before installing.":
+    "更新信息已变化，请重新检查后再安装。",
+  "Update download or signature verification failed. Nothing was installed.":
+    "下载或签名校验失败，未安装任何更新。",
+  "Could not install the update. The gateway has stopped; reconnect or install from GitHub.":
+    "更新安装失败，网关已停止；请重新连接或从 GitHub 手动安装。",
+  "Could not install the update. Move the app to Applications or install the new version from GitHub.":
+    "更新安装失败；请将应用移到「应用程序」，或从 GitHub 安装新版。",
+
   Appearance: "外观",
   Light: "亮色",
   Dark: "暗色",

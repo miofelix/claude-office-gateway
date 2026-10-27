@@ -17,6 +17,12 @@
         },
         {
           "url": "https://github.com/miofelix/claude-office-gateway"
+        },
+        {
+          "url": "https://github.com/miofelix/claude-office-gateway/releases"
+        },
+        {
+          "url": "https://github.com/miofelix/claude-office-gateway/releases/tag/*"
         }
       ]
     }
