@@ -6,9 +6,20 @@
         "titleBarStyle": "Visible",
         "decorations": true,
         "width": 1180,
-        "height": 800
+        "height": 800,
+        "label": "main",
+        "title": "Claude Office Gateway",
+        "minWidth": 820,
+        "minHeight": 620,
+        "center": true,
+        "resizable": true
       }
+    ]
+  },
+  "bundle": {
+    "targets": [
+      "nsis",
+      "msi"
     ]
   }
 }
-

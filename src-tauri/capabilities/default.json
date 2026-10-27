@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "Desktop window and verified Office add-in links",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    { "identifier": "opener:allow-open-url", "allow": [{ "url": "https://marketplace.microsoft.com/en-us/product/*" }] }
+  ]
+}

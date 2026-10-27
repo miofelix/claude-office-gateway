@@ -2,12 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type Protocol = "anthropic" | "openai_chat" | "openai_responses";
 export type GatewayPhase =
-  | "stopped"
-  | "starting"
-  | "checking"
-  | "needs_trust"
-  | "ready"
-  | "failed";
+  "stopped" | "starting" | "checking" | "needs_trust" | "ready" | "failed";
 
 export interface GatewayConfig {
   port: number;
@@ -19,6 +14,8 @@ export interface GatewayConfig {
   auth_header: "authorization" | "x-api-key";
   max_tokens_field: "max_tokens" | "max_completion_tokens";
   timeout_seconds: number;
+  probe_cache_seconds: number;
+  max_request_bytes: number;
   allowed_origins: string[];
 }
 
@@ -76,3 +73,8 @@ export async function recheckGateway(): Promise<AppState> {
   return invoke<AppState>("recheck_gateway");
 }
 
+export async function copyConnectionDetail(
+  field: "url" | "token" | "model",
+): Promise<void> {
+  return invoke("copy_connection_detail", { field });
+}

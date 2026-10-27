@@ -3,18 +3,13 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use url::Url;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum UpstreamProtocol {
     Anthropic,
+    #[default]
     OpenaiChat,
     OpenaiResponses,
-}
-
-impl Default for UpstreamProtocol {
-    fn default() -> Self {
-        Self::OpenaiChat
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -22,23 +17,43 @@ pub struct GatewayConfig {
     #[serde(default = "default_port")]
     pub port: u16,
     #[serde(default)]
+    #[serde(alias = "baseURL")]
     pub base_url: String,
     #[serde(default)]
+    #[serde(alias = "upstreamProtocol")]
     pub upstream_protocol: UpstreamProtocol,
     #[serde(default)]
+    #[serde(alias = "upstreamModel")]
     pub upstream_model: String,
     #[serde(default = "default_public_model")]
+    #[serde(alias = "publicModel")]
     pub public_model: String,
     #[serde(default = "default_display_name")]
+    #[serde(alias = "displayName")]
     pub display_name: String,
     #[serde(default = "default_auth_header")]
+    #[serde(alias = "authHeader")]
     pub auth_header: String,
     #[serde(default = "default_max_tokens_field")]
+    #[serde(alias = "maxTokensField")]
     pub max_tokens_field: String,
     #[serde(default = "default_timeout")]
+    #[serde(alias = "timeoutSeconds")]
     pub timeout_seconds: u64,
     #[serde(default = "default_allowed_origins")]
+    #[serde(alias = "allowedOrigins")]
     pub allowed_origins: Vec<String>,
+    #[serde(default = "default_probe_cache", alias = "probeCacheSeconds")]
+    pub probe_cache_seconds: u64,
+    #[serde(default = "default_request_limit", alias = "maxRequestBytes")]
+    pub max_request_bytes: usize,
+}
+
+fn default_probe_cache() -> u64 {
+    300
+}
+fn default_request_limit() -> usize {
+    32 * 1024 * 1024
 }
 
 fn default_port() -> u16 {
@@ -66,6 +81,8 @@ fn default_allowed_origins() -> Vec<String> {
 impl Default for GatewayConfig {
     fn default() -> Self {
         Self {
+            probe_cache_seconds: default_probe_cache(),
+            max_request_bytes: default_request_limit(),
             port: default_port(),
             base_url: String::new(),
             upstream_protocol: UpstreamProtocol::default(),
@@ -133,6 +150,11 @@ impl GatewayConfig {
                 "Provider timeout must be between 1 and 600 seconds."
             ));
         }
+        if self.probe_cache_seconds > 3600
+            || !(1024..=32 * 1024 * 1024).contains(&self.max_request_bytes)
+        {
+            return Err(anyhow!("Gateway request or cache limit is invalid."));
+        }
         if self.allowed_origins.is_empty()
             || self.allowed_origins.iter().any(|origin| {
                 let Ok(url) = Url::parse(origin) else {
@@ -175,7 +197,16 @@ impl GatewayConfig {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::write(path, serde_json::to_vec_pretty(self)?)?;
+        if path.exists() {
+            let old = std::fs::read(path)?;
+            if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&old) {
+                let backup = path.with_extension("swift-backup.json");
+                if value.get("baseURL").is_some() && !backup.exists() {
+                    crate::paths::write_private(&backup, &old)?;
+                }
+            }
+        }
+        crate::paths::write_private(path, &serde_json::to_vec_pretty(self)?)?;
         Ok(())
     }
 }
