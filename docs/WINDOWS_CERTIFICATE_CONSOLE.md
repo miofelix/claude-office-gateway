@@ -16,8 +16,10 @@
 
 增加正向对照，明确请求 `CREATE_NEW_CONSOLE`，先断言环境能分配非零控制台；再要求后台封装覆盖该请求且返回 0。旧代码在 Actions run `40468310260` 的 Windows 原生回归中失败：实际句柄 `327904`，预期 `0`。正向对照和其余 22 项测试均通过。
 
-修复后继续运行同一回归，并检查连续三次 PowerShell 启动无控制台，以及退出码 7 和标准错误内容仍原样返回。结果将在发布验证完成后补入。
+修复提交 `026cc7cbfb278257980de2c9331bb95e2bf1c52a` 后，同一回归在 Actions run `40469501934` 的 Windows 原生检查中通过：正向对照仍能创建控制台，后台启动封装覆盖后句柄为 0；连续三次 PowerShell 启动也没有控制台。退出码 7 和标准错误原样返回的测试通过。Windows 共 23 项 Rust 测试、24 项前端测试、10 项发布脚本测试，以及格式／类型／构建／clippy 检查全部通过。
 
 CI 验证的是进程控制台分配与错误语义，用户桌面上的可见窗口、原生证书确认和 Office 交互仍需实际 Windows 设备复测。
+
+beta.2 已发布，Windows EXE / MSI 构建、更新签名和公开下载文件校验通过。beta.1 可从标题旁版本号检查更新，或下载安装新版本覆盖升级，无需因此问题卸载重装证书。升级后请在打开主界面和后台驻留状态各观察至少 30 秒，确认 PowerShell 不再闪现。
 
 官方参考：[Windows process creation flags](https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags)。
