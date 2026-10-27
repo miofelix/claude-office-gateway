@@ -28,6 +28,7 @@ export function useAppUpdates() {
     const sequence = ++refreshSequence.current;
     try {
       const next = await getUpdateState();
+      if (next.checked_at || next.phase !== "idle") checked.current = true;
       if (
         mounted.current &&
         generation === revision.current &&

@@ -4,6 +4,7 @@ mod certificate;
 mod config;
 mod credentials;
 mod gateway;
+mod lightweight;
 mod paths;
 mod protocol;
 mod providers;
@@ -269,11 +270,7 @@ fn set_tray_language(
     Ok(())
 }
 fn show(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
+    lightweight::show(app);
 }
 
 pub fn run() {
@@ -282,6 +279,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _, _| show(app)))
         .manage(AppState::default())
         .manage(updates::Updates::default())
+        .manage(lightweight::Windows::default())
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
@@ -299,11 +297,16 @@ pub fn run() {
             recheck_gateway,
             copy_connection_detail,
             set_tray_language,
+            lightweight::enter_lightweight_mode,
+            lightweight::show_main_window,
             updates::get_update_state,
             updates::check_for_updates,
             updates::install_app_update
         ])
         .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                lightweight::destroyed(window.app_handle());
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();
@@ -348,6 +351,11 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("Could not build Claude Office Gateway")
         .run(|app, event| match event {
+            tauri::RunEvent::ExitRequested {
+                code: None, api, ..
+            } if lightweight::active(app) => {
+                api.prevent_exit();
+            }
             tauri::RunEvent::Exit => {
                 app.state::<AppState>().runtime.shutdown();
             }

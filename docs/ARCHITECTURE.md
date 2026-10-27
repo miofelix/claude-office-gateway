@@ -12,6 +12,7 @@
 | `src/lib/tauri.ts` | 类型明确的前端命令接口 |
 | `src-tauri/src/lib.rs` | Tauri 命令、单实例、窗口驻留、平台入口 |
 | `tray.rs` | 动态状态栏菜单：连接、检测、停止、复制、GitHub；状态同步与中英文标签 |
+| `lightweight.rs`、`useLightweightMode.ts` | 仅托盘模式、窗口销毁／重建、唤起去重、草稿与进行中操作保护 |
 | `runtime.rs` | 监听器、启动/验证/停止状态、取消、端口错误、信任失效后的停止 |
 | `gateway.rs` | localhost HTTPS 路由、认证、Host/Origin/CORS、请求限制、上游传输、探针缓存 |
 | `protocol.rs`、`stream.rs` | Anthropic ↔ OpenAI 转换、工具/图片/推理参数、SSE 增量转换 |
@@ -31,6 +32,7 @@
 - Host、Origin、认证、预检方法和请求头均校验。上游重定向不自动跟随，错误文本不包含上游密钥或返回正文。
 - 安装／检查／卸载集中在同一证书卡片；右侧引导按「安装加载项 → 选择 Gateway 和 API 格式／认证 → 粘贴三个参数」完成接入。
 - 外观偏好以 `office-gateway-appearance` 保存在当前客户端，默认跟随系统；CSS 配色与 Tauri 原生窗口主题一起切换，不改动操作系统全局外观。
+- 轻量模式只释放窗口和 WebView，Rust 网关与托盘保持运行；统一恢复入口处理托盘、macOS Reopen、重复启动，窗口销毁中到达的恢复请求排到 Destroyed 后。仅无窗口触发的隐式退出被阻止，显式退出和更新重启保持原有清理流程。
 - localhost 证书为 `CA:FALSE`、ServerAuth、SAN localhost/127.0.0.1/::1，有效期一年。macOS 信任限定 SSL localhost；Windows 使用当前用户证书存储并按指纹删除。证书不能按端口限定；`CA:FALSE` 也不能作为跨平台信任锚约束的绝对保证，详见 `CERTIFICATE_SCOPE.md`。
 
 ## 提交阶段

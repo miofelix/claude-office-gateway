@@ -15,6 +15,21 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  "Lightweight mode": "轻量模式",
+  "Enter lightweight mode": "进入轻量模式",
+  "Enter lightweight mode?": "进入轻量模式？",
+  "Release the main window and web view while the gateway keeps running. Reopen from the tray or launch the app again to return.":
+    "释放主窗口和 WebView，网关继续运行。从状态栏／托盘打开，或再次启动应用即可返回。",
+  "Your unsaved provider changes will be discarded. Save them first if you want to keep them.":
+    "尚未保存的供应商修改将被丢弃。如需保留，请先保存。",
+  "The main window and web view will be released. The gateway and tray keep running. Open the app from the tray to return.":
+    "主窗口和 WebView 将被释放，网关与状态栏／托盘继续运行。可从状态栏／托盘重新打开。",
+  "Keep editing": "继续编辑",
+  "Discard and enter": "丢弃修改并进入",
+  "Wait for the current operation before entering lightweight mode.":
+    "请等待当前操作完成或关闭对话框后，再进入轻量模式。",
+  "The tray is unavailable. Keep the main window open.":
+    "状态栏／托盘不可用，请保持主窗口打开。",
   "DeepSeek tool conversations use non-thinking mode so Office can call tools and return their results reliably. Plain text requests keep their original thinking settings.":
     "DeepSeek 工具对话会使用非思考模式，确保 Office 能正常调用工具并回传结果。普通文本请求保留原有思考设置。",
   'Office requires a model ID starting with "claude", such as "claude-office-custom". This gateway alias maps to your provider model.':

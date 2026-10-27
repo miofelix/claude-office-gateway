@@ -601,6 +601,28 @@ fieldset {
   color: var(--muted);
   line-height: 1.5;
 }
+.lightweight-setting {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 17px 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.lightweight-setting > div {
+  flex: 1 1 220px;
+}
+.lightweight-setting strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.lightweight-setting p {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
 .local-privacy-note {
   display: flex;
   align-items: flex-start;

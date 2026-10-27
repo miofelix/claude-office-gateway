@@ -13,6 +13,8 @@ import { useAppearance, type Appearance } from "./hooks/useAppearance";
 import { useAppUpdates } from "./hooks/useAppUpdates";
 import { UpdateDialog } from "./components/UpdateDialog";
 import { useGateway } from "./hooks/useGateway";
+import { useLightweightMode } from "./hooks/useLightweightMode";
+import { LightweightDialog } from "./components/LightweightDialog";
 import { ConnectionPage } from "./components/ConnectionPage";
 import { setTrayLanguage } from "./lib/tauri";
 import logo from "./assets/logo.svg";
@@ -27,6 +29,11 @@ export default function App() {
     void setTrayLanguage(language).catch(() => {});
   }, [language]);
   const [confirm, setConfirm] = useState<"install" | "delete" | null>(null);
+  const lightweight = useLightweightMode({
+    dirty: gateway.dirty,
+    busy: !!gateway.busy || updates.busy || confirm !== null || updatesOpen,
+    onError: (text) => gateway.setNotice({ kind: "error", text }),
+  });
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (confirm) dialog.current?.showModal();
@@ -119,12 +126,18 @@ export default function App() {
           gateway={gateway}
           onInstall={() => setConfirm("install")}
           onDelete={() => setConfirm("delete")}
+          onLightweight={lightweight.request}
         />
       </main>
       <UpdateDialog
         open={updatesOpen}
         onClose={() => setUpdatesOpen(false)}
         updates={updates}
+      />
+      <LightweightDialog
+        open={lightweight.confirmDiscard}
+        onCancel={lightweight.cancel}
+        onEnter={() => void lightweight.enter()}
       />
       <dialog
         ref={dialog}

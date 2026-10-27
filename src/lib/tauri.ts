@@ -83,3 +83,11 @@ export async function copyConnectionDetail(
 export async function setTrayLanguage(language: "en" | "zh"): Promise<void> {
   return invoke("set_tray_language", { language });
 }
+
+export async function enterLightweightMode(): Promise<void> {
+  return invoke("enter_lightweight_mode");
+}
+
+export async function showMainWindow(): Promise<void> {
+  return invoke("show_main_window");
+}

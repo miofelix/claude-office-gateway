@@ -8,7 +8,7 @@ vi.mock("@tauri-apps/api/core", () => api);
 const available = (): UpdateSnapshot => ({
   ...initialUpdateState(),
   phase: "available",
-  available: { version: "0.2.0-beta.2", notes: "A new release" },
+  available: { version: "0.2.0-beta.3", notes: "A new release" },
 });
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -45,6 +45,21 @@ describe("signed application updates", () => {
     await act(async () => {});
     expect(result.current.state.current_version).toBe("0.3.0");
     expect(result.current.state.channel).toBe("stable");
+  });
+  it("restores the native update result without checking again after a window rebuild", async () => {
+    api.invoke.mockResolvedValue({
+      ...initialUpdateState(),
+      phase: "up_to_date",
+      checked_at: "2026-10-27T08:00:00Z",
+    });
+    const { result } = renderHook(useAppUpdates);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(result.current.state.phase).toBe("up_to_date");
+    expect(
+      api.invoke.mock.calls.some(([name]) => name === "check_for_updates"),
+    ).toBe(false);
   });
   it("automatically checks once and never installs without a click", async () => {
     api.invoke.mockImplementation((command: string) =>
@@ -100,7 +115,7 @@ describe("signed application updates", () => {
     ).toHaveLength(1);
     await act(() => result.current.install());
     expect(api.invoke).toHaveBeenCalledWith("install_app_update", {
-      expectedVersion: "0.2.0-beta.2",
+      expectedVersion: "0.2.0-beta.3",
     });
   });
   it("does not let a stale initial read overwrite a completed check", async () => {

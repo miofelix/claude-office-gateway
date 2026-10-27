@@ -1,6 +1,6 @@
 use crate::{runtime::Phase, AppState};
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{TrayIconBuilder, TrayIconEvent},
     Manager,
 };
@@ -10,6 +10,7 @@ const REPOSITORY: &str = "https://github.com/miofelix/claude-office-gateway";
 struct Controls {
     status: MenuItem<tauri::Wry>,
     open: MenuItem<tauri::Wry>,
+    lightweight: CheckMenuItem<tauri::Wry>,
     connect: MenuItem<tauri::Wry>,
     recheck: MenuItem<tauri::Wry>,
     stop: MenuItem<tauri::Wry>,
@@ -27,6 +28,14 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
         "show",
         "Open Claude Office Gateway",
         true,
+        None::<&str>,
+    )?;
+    let lightweight = CheckMenuItem::with_id(
+        app,
+        "lightweight",
+        "Lightweight mode",
+        true,
+        false,
         None::<&str>,
     )?;
     let connect = MenuItem::with_id(app, "connect", "Connect gateway", false, None::<&str>)?;
@@ -58,6 +67,7 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
         &[
             &status,
             &open,
+            &lightweight,
             &a,
             &connect,
             &recheck,
@@ -93,6 +103,7 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
     app.manage(Controls {
         status,
         open,
+        lightweight,
         connect,
         recheck,
         stop,
@@ -170,6 +181,12 @@ pub fn refresh(app: &tauri::AppHandle) {
         "打开 Claude Office Gateway",
     ));
     let _ = items.connect.set_text(text("Connect gateway", "连接网关"));
+    let _ = items
+        .lightweight
+        .set_text(text("Lightweight mode", "轻量模式"));
+    let _ = items
+        .lightweight
+        .set_checked(crate::lightweight::active(app));
     let _ = items.connect.set_enabled(can_connect);
     let _ = items
         .recheck
@@ -204,6 +221,10 @@ pub fn refresh(app: &tauri::AppHandle) {
 fn action(app: &tauri::AppHandle, id: &str) {
     match id {
         "show" => crate::show(app),
+        "lightweight" => {
+            refresh(app);
+            crate::lightweight::request_enter(app);
+        }
         "quit" => app.exit(0),
         "github" => {
             if let Err(error) = app.opener().open_url(REPOSITORY, None::<&str>) {

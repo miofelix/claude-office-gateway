@@ -9,6 +9,7 @@ import {
   KeyRound,
   Link2,
   LoaderCircle,
+  Feather,
   Play,
   RefreshCw,
   Settings2,
@@ -70,10 +71,12 @@ export function ConnectionPage({
   gateway: g,
   onInstall,
   onDelete,
+  onLightweight,
 }: {
   gateway: Gateway;
   onInstall: () => void;
   onDelete: () => void;
+  onLightweight: () => void;
 }) {
   const { state, draft, setDraft, busy, notice } = g;
   const ready = state.runtime.phase === "ready";
@@ -466,6 +469,24 @@ export function ConnectionPage({
                   "Changes use the Save button above. Stop the gateway before editing.",
                 )}
               </p>
+              <div className="lightweight-setting">
+                <div>
+                  <strong>{t("Lightweight mode")}</strong>
+                  <p>
+                    {t(
+                      "Release the main window and web view while the gateway keeps running. Reopen from the tray or launch the app again to return.",
+                    )}
+                  </p>
+                </div>
+                <button
+                  className="button secondary"
+                  onClick={onLightweight}
+                  disabled={!!busy}
+                >
+                  <Feather size={14} />
+                  {t("Enter lightweight mode")}
+                </button>
+              </div>
             </details>
           </section>
           <p className="local-privacy-note">

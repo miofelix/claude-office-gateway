@@ -56,6 +56,9 @@ pub struct Updates {
     operation: tokio::sync::Mutex<()>,
 }
 impl Updates {
+    pub(crate) fn busy(&self) -> bool {
+        self.operation.try_lock().is_err()
+    }
     fn snapshot(&self) -> Snapshot {
         self.snapshot.lock().unwrap().clone()
     }
