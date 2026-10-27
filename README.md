@@ -8,10 +8,10 @@ Supports Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses, incl
 
 ## Use
 
-Requires macOS 13+ or Windows 10/11 with WebView2. The interface supports English and Simplified Chinese.
+Requires macOS 13+ or Windows 10/11 with WebView2. The interface supports English and Simplified Chinese. The top-right appearance selector offers Light, Dark, and Follow system. The choice persists across launches, and system mode responds to live appearance changes.
 
-1. Install the localhost certificate from **Connection** and complete the system confirmation. It is a one-year, self-signed localhost certificate installed for your current user. Certificate verification cannot be restricted to one port; see [certificate scope and platform differences](docs/CERTIFICATE_SCOPE.md).
-2. Enter an HTTPS API base URL, protocol, provider key, and exact model ID. **Save provider** saves without sending requests; **Connect gateway** saves and sends two small checks that your provider may bill.
+1. Install the certificate from the **Local HTTPS certificate** card and complete the system confirmation. Check and uninstall actions are in the same card. It is a one-year, self-signed localhost certificate installed for your current user. Certificate verification cannot be restricted to one port; see [certificate scope and platform differences](docs/CERTIFICATE_SCOPE.md).
+2. Enter an HTTPS API base URL, protocol, provider key, and exact model ID. **Save** saves without sending requests; **Save and connect** saves and sends two small checks that your provider may bill.
 3. In the Claude Office add-in, choose **Gateway**, **Anthropic** format, and **x-api-key** authentication. Copy the URL, gateway token, and Office model ID from the client. Paste the token without `Bearer`.
 
 Keep the client running while using Office. Closing its window keeps the connection alive; quitting stops it. Reopen from the Dock or tray. After relaunch, click **Connect gateway**; a saved provider key does not need to be re-entered.

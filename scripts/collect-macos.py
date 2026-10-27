@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Collect and verify generated macOS bundles without touching user app data."""
 from pathlib import Path
+import argparse
 import hashlib
 import shutil
 import subprocess
 import tempfile
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--output", default="artifacts/macos", help="Output directory, relative to the repository or absolute")
+options = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 bundles = root / "src-tauri/target/release/bundle"
 source = bundles / "macos/Claude Office Gateway.app"
 subprocess.run(["codesign", "--verify", "--deep", "--strict", str(source)], check=True)
-output = root / "artifacts/macos"
+output = root / options.output
 output.mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory(prefix=".collect-", dir=output) as temporary:
     staging = Path(temporary)

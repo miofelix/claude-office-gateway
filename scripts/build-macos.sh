@@ -7,4 +7,4 @@ if [[ "$(uname -s)" != Darwin ]]; then
     exit 1
 fi
 npm run build -- --bundles app,dmg
-python3 scripts/collect-macos.py
+python3 scripts/collect-macos.py "$@"
