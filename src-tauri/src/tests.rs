@@ -174,6 +174,8 @@ async fn rejects_bad_hosts_origins_and_auth_and_allows_office_preflight() {
         .app();
     for (host, origin, key, status) in [
         ("evil.example:15724", None, Some("gateway-secret"), 403),
+        ("localhost:15725", None, Some("gateway-secret"), 403),
+        ("localhost", None, Some("gateway-secret"), 403),
         (
             "localhost:15724",
             Some("https://evil.example"),
@@ -522,4 +524,42 @@ async fn stopping_during_verification_cancels_without_resurrecting_listener() {
     assert!(!runtime.snapshot().running);
     let _reused = std::net::TcpListener::bind(("127.0.0.1", port)).unwrap();
     provider_handle.shutdown();
+}
+
+#[tokio::test]
+async fn certificate_identity_is_not_port_scoped_and_does_not_trust_an_unrelated_localhost_certificate(
+) {
+    let (pem, key, der) = certificate::generate_identity().unwrap();
+    let app = Router::new().fallback(any(|| async { "local-test" }));
+    let (first, a) = serve(app.clone(), &pem, &key).await;
+    let (second, b) = serve(app.clone(), &pem, &key).await;
+    assert_ne!(first, second);
+    let client = reqwest::Client::builder()
+        .add_root_certificate(reqwest::Certificate::from_der(&der).unwrap())
+        .timeout(Duration::from_secs(3))
+        .build()
+        .unwrap();
+    for port in [first, second] {
+        assert_eq!(
+            client
+                .get(format!("https://localhost:{port}"))
+                .send()
+                .await
+                .unwrap()
+                .text()
+                .await
+                .unwrap(),
+            "local-test"
+        );
+    }
+    let (other_pem, other_key, _) = certificate::generate_identity().unwrap();
+    let (other, c) = serve(app, &other_pem, &other_key).await;
+    assert!(client
+        .get(format!("https://localhost:{other}"))
+        .send()
+        .await
+        .is_err());
+    a.shutdown();
+    b.shutdown();
+    c.shutdown();
 }

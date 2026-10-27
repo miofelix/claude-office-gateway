@@ -8,7 +8,7 @@
 
 要求 macOS 13+，或安装了 WebView2 的 Windows 10/11。界面支持简体中文与英文。
 
-1. 在「连接」页安装 localhost 证书，完成系统确认。证书只添加到当前用户，期限一年，不能签发其他证书。
+1. 在「连接」页安装 localhost 证书，完成系统确认。证书添加到当前用户，期限一年。证书信任按主机名校验，不能限定单个端口，也不等于信任所有 localhost 证书；[范围与平台差异](docs/CERTIFICATE_SCOPE.md)。
 2. 填写 HTTPS API 基础地址、协议、供应商密钥和准确的模型 ID。「保存配置」仅保存；「连接网关」会保存并发送两次简短检测请求，可能产生少量费用。
 3. 在 Office 的 Claude 加载项选择 Gateway、Anthropic 格式、x-api-key 认证，复制客户端提供的地址、网关令牌和 Office 模型 ID。令牌无需 `Bearer` 前缀。
 
