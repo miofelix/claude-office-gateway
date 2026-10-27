@@ -15,6 +15,7 @@ pub enum Phase {
     Available,
     Downloading,
     Installing,
+    #[cfg(target_os = "macos")]
     Restarting,
     Error,
 }
