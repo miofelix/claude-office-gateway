@@ -43,3 +43,16 @@ Chromium 与 WKWebView 使用相同的几何和滚动断言。原生 WebKit 的 
 ## 发布平台
 
 `0.2.0-beta.3` 起正式构建只接受 `aarch64-apple-darwin` 和 `x86_64-pc-windows-msvc`。发布矩阵、签名构建与资产收集的目标列表、清单完整性校验和中英文下载说明同步移除 macOS Intel。发布测试验证两种支持平台缺一不可、Windows EXE/MSI 变体必须齐全、退休的 Intel 产物不能混入新版本。
+
+## 发布验证
+
+发布源提交：`9971a5decd8e81272460f72ff54d8aba6e2f1727`，对应 `v0.2.0-beta.3` 标签。版本已于 2026-10-27 09:26:47 UTC 发布。
+
+- [Desktop checks 40478943563](https://github.com/miofelix/claude-office-gateway/actions/runs/40478943563) 的 macOS 和 Windows 作业均成功。
+- [发布流水线 40478945363](https://github.com/miofelix/claude-office-gateway/actions/runs/40478945363) 只有 Apple Silicon 和 Windows x64 两个构建任务，构建、签名验证与 publish 作业全部成功。
+- 本地完整检查通过：176 项原生 WebKit 布局场景、164 项 Chromium 布局场景、24 项前端测试、20 项 Rust 测试、14 项发布脚本测试，以及格式、类型、生产构建和 Clippy 检查。
+- 9 个公开资产全部下载完成，其中 7 个分发文件的 SHA-256 与 `SHA256SUMS` 一致。macOS 更新归档、Windows EXE、Windows MSI 的三份更新签名均重新通过本机 Minisign 验证。
+- 公开 DMG 完整性校验、只读挂载及包内严格代码签名验证通过；确认应用版本 `0.2.0-beta.3`、架构 ARM64、最低 macOS 13.0。公开更新归档内应用也通过相同的版本、架构和代码签名检查。
+- 公开 HTTPS beta 更新源与 Release 的 `latest.json` 内容一致，包含 `darwin-aarch64` 和 Windows 通用／NSIS／MSI 四个平台键；Release 资产与更新清单均没有 macOS Intel。
+
+原生桌面预览也在 `780×560` 窗口验证了固定标题栏、单一内容滚动条与页脚可到达。截图和本地下载校验产物保存在忽略的 `artifacts/layout-beta3/` 与 `artifacts/published-beta3/`。
