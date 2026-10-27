@@ -1,16 +1,113 @@
 :root {
+  --ink: #252c38;
+  --app-bg: #f2f4f7;
+  --surface: #fff;
+  --surface-quiet: #fafbfd;
+  --surface-soft: #f7f9fc;
+  --surface-hover: #eef2f7;
+  --line: #e2e6ed;
+  --line-soft: #e7ebf2;
+  --line-hover: #b9c9df;
+  --muted: #6c7686;
+  --secondary: #6c7686;
+  --accent-text: #334768;
+  --input-text: #3c4759;
+  --placeholder: #a2acba;
+  --input-disabled-bg: #f7f8fa;
+  --focus: #6386bd;
+  --focus-soft: #edf2fa;
+  --primary: #365f9f;
+  --primary-bg: #3d649f;
+  --primary-hover: #315588;
+  --success: #217454;
+  --success-bg: #f1f9f4;
+  --success-border: #cce5d8;
+  --success-dot: #2f9a6d;
+  --danger: #b04e48;
+  --danger-border: #e8c9c7;
+  --danger-bg: #fff8f7;
+  --caution: #8c6a38;
+  --caution-bg: #fbf5e8;
+  --caution-border: #ecdfc8;
+  --neutral-dot: #a6b0bf;
+  --neutral-bg: #f0f2f5;
+  --step-bg: #edf2f9;
+  --step-text: #4c6b98;
+  --ppt-text: #b35e46;
+  --ppt-bg: #fbebe6;
+  --excel-text: #3c8562;
+  --excel-bg: #e9f4ed;
+  --word-text: #4a77af;
+  --word-bg: #eaf1fa;
+  --panel-bg: #eff3f9;
+  --copy-bg: #f1f5fa;
+  --copy-hover-bg: #e6eef8;
+  --section-shadow: #26395d04;
+  --button-shadow: #365f9f10;
+  --modal-shadow: #23345126;
+  --overlay: #18202d55;
+  --primary-foreground: #ffffff;
+}
+:root[data-theme="dark"] {
+  --ink: #e4ebf6;
+  --app-bg: #131923;
+  --surface: #1c2533;
+  --surface-quiet: #192330;
+  --surface-soft: #222e3f;
+  --surface-hover: #29394e;
+  --line: #35445a;
+  --line-soft: #2d3b50;
+  --line-hover: #597399;
+  --muted: #a2b0c5;
+  --secondary: #b0bdd1;
+  --accent-text: #bad0ef;
+  --input-text: #d2def0;
+  --placeholder: #8193af;
+  --input-disabled-bg: #17212f;
+  --focus: #8cafe1;
+  --focus-soft: #304767;
+  --primary: #a0c2f3;
+  --primary-bg: #416da9;
+  --primary-hover: #4c78b5;
+  --primary-foreground: #ffffff;
+  --success: #8ed1af;
+  --success-bg: #233c33;
+  --success-border: #375f4e;
+  --success-dot: #68c193;
+  --danger: #eda39b;
+  --danger-border: #71464b;
+  --danger-bg: #3d2c30;
+  --caution: #dfbf87;
+  --caution-bg: #403524;
+  --caution-border: #66563e;
+  --neutral-dot: #8596b0;
+  --neutral-bg: #29364a;
+  --step-bg: #2a3c56;
+  --step-text: #b4cdf2;
+  --ppt-text: #efb29b;
+  --ppt-bg: #493430;
+  --excel-text: #9ad9b5;
+  --excel-bg: #254133;
+  --word-text: #b2cdf4;
+  --word-bg: #2a3e5d;
+  --panel-bg: #26374e;
+  --copy-bg: #2c3d55;
+  --copy-hover-bg: #365075;
+  --section-shadow: #00000016;
+  --button-shadow: #00000010;
+  --modal-shadow: #00000066;
+  --overlay: #05080fb3;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+:root {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-  color: #252c38;
-  background: #f2f4f7;
+  color: var(--ink);
+  background: var(--app-bg);
   color-scheme: light;
   font-synthesis: none;
-  --ink: #252c38;
-  --muted: #707b8d;
-  --line: #e2e6ed;
-  --primary: #365f9f;
-  --success: #217454;
-  --danger: #b04e48;
 }
 * {
   box-sizing: border-box;
@@ -46,7 +143,7 @@ a:hover {
 button:focus-visible,
 a:focus-visible,
 summary:focus-visible {
-  outline: 2px solid #6386bd;
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 .app-shell {
@@ -60,9 +157,9 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   padding: 0 24px;
-  border-bottom: 1px solid #e0e5ec;
+  border-bottom: 1px solid var(--line);
   gap: 18px;
-  background: #fff;
+  background: var(--surface);
 }
 .platform-macos .window-header {
   padding-left: 88px;
@@ -83,9 +180,9 @@ summary:focus-visible {
 .test-mode-label {
   font-size: 10px;
   font-weight: 500;
-  color: #8c6a38;
-  background: #fbf5e8;
-  border: 1px solid #ecdfc8;
+  color: var(--caution);
+  background: var(--caution-bg);
+  border: 1px solid var(--caution-border);
   border-radius: 4px;
   padding: 3px 5px;
 }
@@ -98,7 +195,7 @@ summary:focus-visible {
 .language-select {
   border: 0;
   background: transparent;
-  color: #6c7686;
+  color: var(--secondary);
   font-size: 12px;
   padding: 5px;
   max-width: 100px;
@@ -113,13 +210,13 @@ summary:focus-visible {
   padding: 0;
   border: 0;
   border-radius: 6px;
-  color: #727e90;
+  color: var(--secondary);
   background: transparent;
   text-decoration: none;
 }
 .icon-button:hover {
-  color: #334768;
-  background: #eef2f7;
+  color: var(--accent-text);
+  background: var(--surface-hover);
   text-decoration: none;
 }
 .page-scroll {
@@ -149,7 +246,7 @@ summary:focus-visible {
 .page-intro p {
   font-size: 12px;
   line-height: 1.5;
-  color: #798497;
+  color: var(--muted);
   margin: 0;
 }
 .connection-badge {
@@ -157,26 +254,26 @@ summary:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border: 1px solid #dde3ec;
+  border: 1px solid var(--line);
   border-radius: 20px;
-  color: #7e8998;
+  color: var(--secondary);
   font-size: 11px;
-  background: #fafbfd;
+  background: var(--surface-quiet);
   white-space: nowrap;
 }
 .connection-badge > span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a6b0bf;
+  background: var(--neutral-dot);
 }
 .connection-badge.connected {
-  border-color: #cce5d8;
-  background: #f1f9f4;
-  color: #2d7956;
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success);
 }
 .connection-badge.connected > span {
-  background: #2f9a6d;
+  background: var(--success-dot);
 }
 .workspace-grid {
   display: grid;
@@ -193,8 +290,8 @@ summary:focus-visible {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 5px #26395d04;
+  background: var(--surface);
+  box-shadow: 0 2px 5px var(--section-shadow);
 }
 h2,
 h3,
@@ -214,7 +311,7 @@ p {
 }
 .section-heading p {
   font-size: 11px;
-  color: #8590a1;
+  color: var(--muted);
   line-height: 1.5;
   margin-top: 3px;
 }
@@ -225,14 +322,14 @@ p {
   flex: 0 0 28px;
   height: 28px;
   border-radius: 8px;
-  background: #edf2f9;
-  color: #4c6b98;
+  background: var(--step-bg);
+  color: var(--step-text);
   font-size: 12px;
   font-weight: 650;
 }
 .step-number.complete {
-  color: #2c825c;
-  background: #e9f5ed;
+  color: var(--success);
+  background: var(--success-bg);
 }
 .section-heading-extra {
   margin-left: auto;
@@ -243,15 +340,15 @@ p {
   display: inline-flex;
   align-items: center;
   font-size: 10px;
-  color: #8b95a3;
+  color: var(--muted);
   white-space: nowrap;
   padding: 3px 6px;
   border-radius: 4px;
-  background: #f0f2f5;
+  background: var(--neutral-bg);
 }
 .status-label.trusted {
-  color: #2d825a;
-  background: #edf7f0;
+  color: var(--success);
+  background: var(--success-bg);
 }
 .certificate-endpoint {
   display: flex;
@@ -260,9 +357,9 @@ p {
   margin: 15px 0 13px;
   padding: 10px 11px;
   border-radius: 7px;
-  border: 1px solid #e7ebf2;
-  background: #f7f9fc;
-  color: #76889f;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-soft);
+  color: var(--secondary);
 }
 .certificate-endpoint > div {
   display: flex;
@@ -273,16 +370,16 @@ p {
 }
 .certificate-endpoint > div > span {
   font-size: 11px;
-  color: #7e8da1;
+  color: var(--secondary);
 }
 .certificate-endpoint code {
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 12px;
-  color: #425777;
+  color: var(--accent-text);
 }
 .scope-chip {
   margin-left: auto;
-  color: #8792a1;
+  color: var(--muted);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -309,7 +406,7 @@ p {
   list-style: none;
   cursor: pointer;
   font-size: 11px;
-  color: #8390a1;
+  color: var(--muted);
   min-height: 30px;
   white-space: nowrap;
 }
@@ -322,13 +419,13 @@ p {
 .trust-explanation {
   font-size: 11px;
   line-height: 1.65;
-  color: #7d8796;
+  color: var(--muted);
   padding-top: 8px;
   min-width: 0;
 }
 .trust-explanation strong {
   font-weight: 600;
-  color: #576b87;
+  color: var(--accent-text);
 }
 .trust-explanation p {
   margin-top: 6px;
@@ -362,33 +459,33 @@ fieldset {
 .field > span {
   font-size: 11.5px;
   font-weight: 500;
-  color: #68758a;
+  color: var(--secondary);
 }
 .field input,
 .field select {
   height: 36px;
   min-width: 0;
   width: 100%;
-  border: 1px solid #dbe1ea;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--surface);
   border-radius: 6px;
   padding: 0 10px;
-  color: #3c4759;
+  color: var(--input-text);
   font-size: 12px;
   outline: none;
 }
 .field input::placeholder {
-  color: #a2acba;
+  color: var(--placeholder);
 }
 .field input:focus,
 .field select:focus {
-  border-color: #8aa2c9;
-  box-shadow: 0 0 0 2px #edf2fa;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px var(--focus-soft);
 }
 .field input:disabled,
 .field select:disabled {
-  background: #f7f8fa;
-  color: #8891a0;
+  background: var(--input-disabled-bg);
+  color: var(--secondary);
 }
 .provider-actions {
   display: flex;
@@ -403,12 +500,12 @@ fieldset {
   gap: 6px;
   font-size: 10.5px;
   line-height: 1.6;
-  color: #8a95a6;
+  color: var(--muted);
   max-width: 190px;
 }
 .provider-hint > svg {
   flex-shrink: 0;
-  color: #6083b4;
+  color: var(--accent-text);
 }
 .button-row,
 .dialog-actions {
@@ -430,44 +527,44 @@ fieldset {
   white-space: nowrap;
 }
 .button.primary {
-  color: #fff;
-  background: #3d649f;
-  border-color: #3d649f;
-  box-shadow: 0 2px 3px #365f9f10;
+  color: var(--primary-foreground);
+  background: var(--primary-bg);
+  border-color: var(--primary-bg);
+  box-shadow: 0 2px 3px var(--button-shadow);
 }
 .button.primary:hover:not(:disabled) {
-  background: #315588;
+  background: var(--primary-hover);
 }
 .button.secondary {
-  border-color: #dbe2ec;
-  background: #fff;
-  color: #63748e;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--secondary);
 }
 .button.secondary:hover:not(:disabled) {
-  background: #f5f8fc;
+  background: var(--surface-hover);
 }
 .button.quiet {
   padding: 0 7px;
   font-size: 11px;
-  color: #7f8ca0;
+  color: var(--muted);
   background: transparent;
 }
 .button.quiet:hover:not(:disabled) {
-  background: #f2f5f9;
+  background: var(--surface-hover);
 }
 .button.danger {
   color: var(--danger);
-  border-color: #e8c9c7;
-  background: #fff;
+  border-color: var(--danger-border);
+  background: var(--surface);
 }
 .danger-text {
-  color: #b26760 !important;
+  color: var(--danger) !important;
 }
 .advanced-settings {
   margin: 17px -18px -18px;
-  border-top: 1px solid #e9edf3;
+  border-top: 1px solid var(--line-soft);
   border-radius: 0 0 12px 12px;
-  background: #fafbfd;
+  background: var(--surface-quiet);
 }
 .advanced-settings > summary {
   display: flex;
@@ -476,7 +573,7 @@ fieldset {
   padding: 12px 17px;
   list-style: none;
   font-size: 11.5px;
-  color: #7b899d;
+  color: var(--muted);
   cursor: pointer;
   user-select: none;
 }
@@ -501,7 +598,7 @@ fieldset {
 .advanced-save-hint {
   margin: 0 17px 15px;
   font-size: 11px;
-  color: #8c98aa;
+  color: var(--muted);
   line-height: 1.5;
 }
 .local-privacy-note {
@@ -510,7 +607,7 @@ fieldset {
   gap: 6px;
   padding: 0 3px;
   font-size: 10.5px;
-  color: #8c97a8;
+  color: var(--muted);
   line-height: 1.6;
 }
 .local-privacy-note > svg {
@@ -518,7 +615,7 @@ fieldset {
   margin-top: 1px;
 }
 .office-section {
-  background: linear-gradient(150deg, #fff, #fbfcff);
+  background: linear-gradient(150deg, var(--surface), var(--surface-quiet));
 }
 .office-instructions {
   margin-top: 18px;
@@ -526,7 +623,7 @@ fieldset {
 .office-instructions h3 {
   font-size: 12px;
   font-weight: 600;
-  color: #5f708a;
+  color: var(--accent-text);
   line-height: 1.5;
 }
 .addin-list {
@@ -539,16 +636,16 @@ fieldset {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid #e6eaf0;
+  border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--surface);
   transition:
     border-color 0.15s,
     background 0.15s;
 }
 .addin-link:hover {
-  border-color: #b9c9df;
-  background: #f9fbff;
+  border-color: var(--line-hover);
+  background: var(--surface-hover);
   text-decoration: none;
 }
 .office-app-mark {
@@ -561,28 +658,28 @@ fieldset {
   font-weight: 700;
 }
 .powerpoint .office-app-mark {
-  color: #b35e46;
-  background: #fbebe6;
+  color: var(--ppt-text);
+  background: var(--ppt-bg);
 }
 .excel .office-app-mark {
-  color: #3c8562;
-  background: #e9f4ed;
+  color: var(--excel-text);
+  background: var(--excel-bg);
 }
 .word .office-app-mark {
-  color: #4a77af;
-  background: #eaf1fa;
+  color: var(--word-text);
+  background: var(--word-bg);
 }
 .addin-name {
   font-size: 13px;
   font-weight: 550;
-  color: #425673;
+  color: var(--accent-text);
 }
 .addin-action {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #8799b2;
+  color: var(--muted);
   margin-left: auto;
 }
 .instruction-divider {
@@ -591,13 +688,13 @@ fieldset {
   align-items: center;
   justify-content: center;
   margin: 13px 0;
-  color: #9aabc3;
+  color: var(--muted);
 }
 .instruction-divider::before,
 .instruction-divider::after {
   content: "";
   height: 1px;
-  background: #e9edf3;
+  background: var(--line-soft);
   flex: 1;
 }
 .instruction-divider svg {
@@ -606,7 +703,7 @@ fieldset {
 .instruction-copy {
   font-size: 11px;
   line-height: 1.65;
-  color: #8994a5;
+  color: var(--muted);
   margin-top: 5px;
 }
 .office-api-settings {
@@ -616,8 +713,8 @@ fieldset {
   padding: 10px 11px;
   margin: 10px 0 16px;
   border-radius: 7px;
-  background: #eff3f9;
-  border: 1px solid #e6ecf4;
+  background: var(--panel-bg);
+  border: 1px solid var(--line-soft);
 }
 .office-api-settings > div {
   display: flex;
@@ -627,12 +724,12 @@ fieldset {
 }
 .office-api-settings dt {
   font-size: 10px;
-  color: #7f90a9;
+  color: var(--muted);
 }
 .office-api-settings dd {
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 11px;
-  color: #4a6285;
+  color: var(--accent-text);
   margin: 0;
 }
 .office-details-heading {
@@ -646,14 +743,14 @@ fieldset {
   gap: 0;
   margin-top: 8px;
   padding: 1px 11px;
-  border: 1px solid #e6ebf2;
+  border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--surface);
 }
 .copy-row {
   min-width: 0;
   padding: 10px 0;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--line-soft);
 }
 .copy-row:last-child {
   border-bottom: 0;
@@ -662,7 +759,7 @@ fieldset {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #8693a6;
+  color: var(--muted);
   font-size: 10.5px;
 }
 .copy-row > div {
@@ -680,7 +777,7 @@ fieldset {
   overflow: hidden;
   min-width: 0;
   flex: 1;
-  color: #495f80;
+  color: var(--accent-text);
 }
 .copy-button {
   display: flex;
@@ -688,16 +785,16 @@ fieldset {
   justify-content: center;
   gap: 4px;
   border: 0;
-  background: #f1f5fa;
-  color: #7590b3;
+  background: var(--copy-bg);
+  color: var(--accent-text);
   border-radius: 5px;
   font-size: 10px;
   min-height: 26px;
   padding: 0 7px;
 }
 .copy-button:hover:not(:disabled) {
-  background: #e6eef8;
-  color: #4b6c99;
+  background: var(--copy-hover-bg);
+  color: var(--accent-text);
 }
 .token-hint {
   display: flex;
@@ -705,7 +802,7 @@ fieldset {
   gap: 6px;
   font-size: 10.5px;
   line-height: 1.65;
-  color: #8c99ac;
+  color: var(--muted);
   margin-top: 10px;
 }
 .token-hint > svg {
@@ -718,8 +815,8 @@ fieldset {
   gap: 12px;
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid #e4e9f0;
-  color: #8d99ab;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
   font-size: 10.5px;
   line-height: 1.5;
 }
@@ -727,18 +824,18 @@ fieldset {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #d9e9de;
-  background: #f6fbf7;
-  color: #3b7954;
+  border: 1px solid var(--success-border);
+  background: var(--success-bg);
+  color: var(--success);
   border-radius: 8px;
   font-size: 12px;
   margin-bottom: 16px;
   padding: 9px 12px;
 }
 .notice.error {
-  border-color: #ead5d2;
-  color: #a3554d;
-  background: #fff8f7;
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--danger-bg);
 }
 .notice p {
   flex: 1;
@@ -748,15 +845,16 @@ fieldset {
   flex-shrink: 0;
 }
 dialog {
+  background: var(--surface);
   width: min(460px, calc(100% - 40px));
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  color: #303e53;
-  box-shadow: 0 15px 50px #23345126;
+  color: var(--input-text);
+  box-shadow: 0 15px 50px var(--modal-shadow);
 }
 dialog::backdrop {
-  background: #18202d55;
+  background: var(--overlay);
 }
 dialog h2 {
   font-size: 17px;
@@ -765,7 +863,7 @@ dialog h2 {
 dialog p {
   font-size: 12.5px;
   line-height: 1.8;
-  color: #7e899a;
+  color: var(--muted);
   margin: 14px 0 21px;
 }
 .dialog-actions {
@@ -826,7 +924,7 @@ dialog p {
   }
   .copy-row {
     border-bottom: 0;
-    border-right: 1px solid #eef1f5;
+    border-right: 1px solid var(--line-soft);
     padding: 0 10px 0 0;
   }
   .copy-row:last-child {
@@ -923,7 +1021,7 @@ dialog p {
   }
   .copy-row {
     border-right: 0;
-    border-bottom: 1px solid #eef1f5;
+    border-bottom: 1px solid var(--line-soft);
     padding: 10px 0;
   }
   .copy-row:last-child {
@@ -952,7 +1050,7 @@ dialog p {
 }
 .section-heading p {
   font-size: 12px;
-  color: #7a879b;
+  color: var(--muted);
 }
 .field > span {
   font-size: 12px;
@@ -970,7 +1068,7 @@ dialog p {
 }
 .office-instructions h3 {
   font-size: 13px;
-  color: #536680;
+  color: var(--accent-text);
 }
 .addin-name {
   font-size: 14px;
@@ -1022,7 +1120,7 @@ dialog p {
   .copy-row {
     grid-template-columns: 110px minmax(0, 1fr);
     border-right: 0;
-    border-bottom: 1px solid #eef1f5;
+    border-bottom: 1px solid var(--line-soft);
     padding: 8px 0;
   }
   .copy-row:last-child {
@@ -1049,9 +1147,45 @@ dialog p {
 dialog .certificate-platform-note {
   font-size: 11px;
   line-height: 1.65;
-  color: #8793a5;
-  background: #f4f7fb;
+  color: var(--muted);
+  background: var(--surface-soft);
   border-radius: 6px;
   padding: 9px 10px;
   margin: 0 0 18px;
+}
+
+.appearance-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--secondary);
+  padding: 2px 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--surface-quiet);
+}
+.appearance-control select {
+  color: var(--secondary);
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  padding: 4px 3px;
+  max-width: 112px;
+  outline: none;
+}
+.appearance-control:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .appearance-control > svg {
+    display: none;
+  }
+  .appearance-control {
+    padding: 1px 2px;
+  }
+  .appearance-control select {
+    font-size: 11px;
+    max-width: 90px;
+  }
 }

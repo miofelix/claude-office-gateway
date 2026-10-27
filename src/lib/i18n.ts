@@ -15,6 +15,10 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  Appearance: "外观",
+  Light: "亮色",
+  Dark: "暗色",
+  "Follow system": "跟随系统",
   "macOS: user-level SSL trust for localhost in your login Keychain.":
     "macOS：在当前用户的登录钥匙串中，为此证书设置 SSL／localhost 信任。",
   "Windows: this certificate is added to Current User / Trusted Root Certification Authorities.":

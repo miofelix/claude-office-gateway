@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Github, RefreshCw } from "lucide-react";
+import { Github, RefreshCw, Sun, Moon, Monitor } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t, useLanguage } from "./lib/i18n";
+import { useAppearance, type Appearance } from "./hooks/useAppearance";
 import { useGateway } from "./hooks/useGateway";
 import { ConnectionPage } from "./components/ConnectionPage";
 import { setTrayLanguage } from "./lib/tauri";
@@ -9,6 +10,7 @@ import logo from "./assets/logo.svg";
 
 export default function App() {
   const [language, setLanguage] = useLanguage();
+  const { appearance, setAppearance } = useAppearance();
   const gateway = useGateway();
   useEffect(() => {
     void setTrayLanguage(language).catch(() => {});
@@ -30,6 +32,26 @@ export default function App() {
           )}
         </div>
         <div className="header-actions">
+          <label className="appearance-control" title={t("Appearance")}>
+            {appearance === "system" ? (
+              <Monitor size={14} />
+            ) : appearance === "dark" ? (
+              <Moon size={14} />
+            ) : (
+              <Sun size={14} />
+            )}
+            <select
+              aria-label={t("Appearance")}
+              value={appearance}
+              onChange={(event) =>
+                setAppearance(event.target.value as Appearance)
+              }
+            >
+              <option value="light">{t("Light")}</option>
+              <option value="dark">{t("Dark")}</option>
+              <option value="system">{t("Follow system")}</option>
+            </select>
+          </label>
           <select
             className="language-select"
             aria-label="Language / 语言"
