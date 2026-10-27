@@ -1,6 +1,6 @@
 use crate::{
     certificate,
-    config::{GatewayConfig, UpstreamProtocol},
+    config::{GatewayConfig, ProviderStore, UpstreamProtocol},
     gateway::GatewayRouter,
     protocol,
     runtime::{Phase, Runtime},
@@ -151,11 +151,16 @@ fn migrates_swift_config_without_losing_settings() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("settings.json");
     std::fs::write(&path,json!({"baseURL":"https://provider.example/v1","upstreamModel":"saved-model","upstreamProtocol":"anthropic","publicModel":"office-saved","displayName":"Saved","authHeader":"x-api-key","maxTokensField":"max_tokens","timeoutSeconds":45,"allowedOrigins":["https://pivot.claude.ai"]}).to_string()).unwrap();
-    let saved = GatewayConfig::load(&path).unwrap();
+    let saved = ProviderStore::load(&path)
+        .unwrap()
+        .active()
+        .unwrap()
+        .config
+        .clone();
     assert_eq!(saved.upstream_model, "saved-model");
     assert_eq!(saved.public_model, "office-saved");
     assert_eq!(saved.timeout_seconds, 45);
-    saved.save(&path).unwrap();
+    ProviderStore::load(&path).unwrap().save(&path).unwrap();
     assert!(path.with_extension("swift-backup.json").exists());
     #[cfg(unix)]
     {

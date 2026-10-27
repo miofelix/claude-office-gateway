@@ -16,17 +16,19 @@ mod tray;
 mod updates;
 
 use certificate::CertificateManager;
-use config::GatewayConfig;
+use config::{GatewayConfig, ProviderStore};
 use gateway::GatewayRouter;
 use runtime::Runtime;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 #[derive(Clone, Default)]
 struct Vault {
-    loaded: bool,
+    provider_id: Option<String>,
     key: Option<String>,
+    keys: HashMap<String, Option<String>>,
     token: String,
 }
 #[derive(Clone, Default)]
@@ -45,6 +47,8 @@ struct CertificateState {
 }
 #[derive(Serialize)]
 struct ClientState {
+    active_provider_id: String,
+    providers: Vec<ProviderSummary>,
     config: GatewayConfig,
     has_upstream_key: bool,
     gateway_token: String,
@@ -53,45 +57,85 @@ struct ClientState {
     platform: &'static str,
     test_mode: bool,
 }
+#[derive(Serialize)]
+struct ProviderSummary {
+    id: String,
+    name: String,
+    base_url: String,
+    upstream_model: String,
+    public_model: String,
+}
 #[derive(Deserialize)]
 struct SaveSettingsInput {
+    provider_id: Option<String>,
+    name: String,
     config: GatewayConfig,
     upstream_key: String,
+}
+#[derive(Deserialize)]
+struct ProviderIdInput {
+    provider_id: String,
 }
 fn isolated() -> bool {
     std::env::var("OFFICE_GATEWAY_TEST_MODE").as_deref() == Ok("1")
         && std::env::var_os("OFFICE_GATEWAY_DATA_DIR").is_some()
 }
-fn load_vault(app: &AppState) -> Result<Vault, String> {
+fn load_vault(app: &AppState, provider_id: &str) -> Result<Vault, String> {
     let mut vault = app
         .vault
         .lock()
         .map_err(|_| "Credential state unavailable")?;
-    if !vault.loaded {
-        if isolated() {
-            vault.token = format!(
+    if vault.token.is_empty() {
+        vault.token = if isolated() {
+            format!(
                 "og_{}{}",
                 uuid::Uuid::new_v4().simple(),
                 uuid::Uuid::new_v4().simple()
-            );
+            )
         } else {
-            vault.key = credentials::read_upstream_key().map_err(|e| e.to_string())?;
-            vault.token = credentials::gateway_token().map_err(|e| e.to_string())?;
-        }
-        vault.loaded = true;
+            credentials::gateway_token().map_err(|e| e.to_string())?
+        };
+    }
+    if vault.provider_id.as_deref() != Some(provider_id) {
+        let key = if let Some(key) = vault.keys.get(provider_id) {
+            key.clone()
+        } else {
+            let key = if isolated() {
+                None
+            } else {
+                credentials::read_upstream_key(provider_id).map_err(|e| e.to_string())?
+            };
+            vault.keys.insert(provider_id.to_string(), key.clone());
+            key
+        };
+        vault.provider_id = Some(provider_id.to_string());
+        vault.key = key;
     }
     Ok(vault.clone())
 }
 fn snapshot_sync(app: &AppState) -> Result<ClientState, String> {
-    let config = GatewayConfig::load(&paths::config_path())
-        .map_err(|e| format!("Could not load saved settings: {e}"))?;
-    let vault = load_vault(app)?;
+    let store = ProviderStore::load(&paths::config_path())
+        .map_err(|e| format!("Could not load provider settings: {e}"))?;
+    let active = store.active().map_err(|e| e.to_string())?;
+    let vault = load_vault(app, &active.id)?;
     let trusted = CertificateManager::trusted();
     app.certificate_trusted
         .store(trusted, std::sync::atomic::Ordering::Relaxed);
     Ok(ClientState {
+        active_provider_id: active.id.clone(),
+        providers: store
+            .providers
+            .iter()
+            .map(|provider| ProviderSummary {
+                id: provider.id.clone(),
+                name: provider.name.clone(),
+                base_url: provider.config.base_url.clone(),
+                upstream_model: provider.config.upstream_model.clone(),
+                public_model: provider.config.public_model.clone(),
+            })
+            .collect(),
         test_mode: isolated(),
-        config,
+        config: active.config.clone(),
         has_upstream_key: vault.key.is_some(),
         gateway_token: vault.token,
         certificate: CertificateState {
@@ -160,8 +204,25 @@ async fn save_settings(
         if input.config.display_name == "Custom model" {
             input.config.display_name = input.config.upstream_model.clone();
         }
+        input.name = input.name.trim().to_string();
+        if input.name.is_empty() || input.name.chars().count() > 80 {
+            return Err("Enter a provider name up to 80 characters.".to_string());
+        }
         input.config.validate().map_err(|e| e.to_string())?;
-        let vault = load_vault(&owned)?;
+        let mut store = ProviderStore::load(&paths::config_path()).map_err(|e| e.to_string())?;
+        let provider_id = match input.provider_id.take() {
+            Some(id) if store.providers.iter().any(|provider| provider.id == id) => id,
+            Some(_) => return Err("Provider profile was not found.".to_string()),
+            None if store.providers.len() == 1
+                && store.providers[0].id == "default"
+                && store.providers[0].config.base_url.trim().is_empty()
+                && store.providers[0].config.upstream_model.trim().is_empty() =>
+            {
+                "default".into()
+            }
+            None => format!("provider-{}", uuid::Uuid::new_v4().simple()),
+        };
+        let vault = load_vault(&owned, &provider_id)?;
         let key = input.upstream_key.trim();
         if key.is_empty() && vault.key.is_none() {
             return Err("Enter a provider API key.".to_string());
@@ -171,20 +232,62 @@ async fn save_settings(
         }
         // Validate the complete draft before replacing either saved value.
         if !key.is_empty() && !isolated() {
-            credentials::write_upstream_key(key).map_err(|e| e.to_string())?;
+            credentials::write_upstream_key(&provider_id, key).map_err(|e| e.to_string())?;
         }
-        input
-            .config
+        if let Some(profile) = store
+            .providers
+            .iter_mut()
+            .find(|profile| profile.id == provider_id)
+        {
+            profile.name = input.name;
+            profile.config = input.config;
+        } else {
+            store.providers.push(config::ProviderProfile {
+                id: provider_id.clone(),
+                name: input.name,
+                config: input.config,
+            });
+        }
+        store.active_provider_id = provider_id.clone();
+        store
             .save(&paths::config_path())
             .map_err(|e| e.to_string())?;
         if !key.is_empty() {
-            owned
+            let mut vault = owned
                 .vault
                 .lock()
-                .map_err(|_| "Credential state unavailable")?
-                .key = Some(key.into());
+                .map_err(|_| "Credential state unavailable")?;
+            vault.keys.insert(provider_id.clone(), Some(key.into()));
+            vault.provider_id = Some(provider_id);
+            vault.key = Some(key.into());
         }
         Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    snapshot(app.inner().clone()).await
+}
+#[tauri::command]
+async fn select_provider(
+    app: tauri::State<'_, AppState>,
+    input: ProviderIdInput,
+) -> Result<ClientState, String> {
+    if app.runtime.snapshot().running || app.runtime.busy() {
+        return Err("Stop the gateway before switching provider profiles.".into());
+    }
+    let owned = app.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let _guard = owned.settings.lock().map_err(|_| "Settings unavailable")?;
+        let mut store = ProviderStore::load(&paths::config_path()).map_err(|e| e.to_string())?;
+        if !store
+            .providers
+            .iter()
+            .any(|provider| provider.id == input.provider_id)
+        {
+            return Err("Provider profile was not found.".to_string());
+        }
+        store.active_provider_id = input.provider_id;
+        store.save(&paths::config_path()).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())??;
@@ -204,8 +307,10 @@ async fn connect_gateway(app: tauri::State<'_, AppState>) -> Result<ClientState,
     })
     .await
     .map_err(|e| e.to_string())??;
-    let config = GatewayConfig::load(&paths::config_path()).map_err(|e| e.to_string())?;
-    let vault = load_vault(&app)?;
+    let store = ProviderStore::load(&paths::config_path()).map_err(|e| e.to_string())?;
+    let active = store.active().map_err(|e| e.to_string())?;
+    let config = active.config.clone();
+    let vault = load_vault(&app, &active.id)?;
     let key = vault.key.ok_or("Enter a provider API key.")?;
     let router = GatewayRouter::new(config.clone(), vault.token, key).map_err(|e| e.to_string())?;
     app.runtime
@@ -241,11 +346,12 @@ fn copy_connection_detail(app: tauri::State<'_, AppState>, field: &str) -> Resul
     if app.runtime.snapshot().phase != runtime::Phase::Ready {
         return Err("Connect the gateway before copying Office settings.".into());
     }
-    let config = GatewayConfig::load(&paths::config_path()).map_err(|e| e.to_string())?;
+    let store = ProviderStore::load(&paths::config_path()).map_err(|e| e.to_string())?;
+    let active = store.active().map_err(|e| e.to_string())?;
     let text = match field {
-        "url" => format!("https://localhost:{}", config.port),
-        "token" => load_vault(&app)?.token,
-        "model" => config.public_model,
+        "url" => format!("https://localhost:{}", active.config.port),
+        "token" => load_vault(&app, &active.id)?.token,
+        "model" => active.config.public_model.clone(),
         _ => return Err("Unknown connection field".into()),
     };
     arboard::Clipboard::new()
@@ -292,6 +398,7 @@ pub fn run() {
             install_certificate,
             delete_certificate,
             save_settings,
+            select_provider,
             connect_gateway,
             stop_gateway,
             recheck_gateway,

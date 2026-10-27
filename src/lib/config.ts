@@ -14,6 +14,16 @@ export const defaultConfig: GatewayConfig = {
   max_request_bytes: 32 * 1024 * 1024,
 };
 export const initialState = (): AppState => ({
+  active_provider_id: "default",
+  providers: [
+    {
+      id: "default",
+      name: "Custom model",
+      base_url: "",
+      upstream_model: "",
+      public_model: defaultConfig.public_model,
+    },
+  ],
   config: defaultConfig,
   has_upstream_key: false,
   gateway_token: "",

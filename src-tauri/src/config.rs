@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::Path;
 use url::Url;
 
@@ -47,6 +48,19 @@ pub struct GatewayConfig {
     pub probe_cache_seconds: u64,
     #[serde(default = "default_request_limit", alias = "maxRequestBytes")]
     pub max_request_bytes: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProviderProfile {
+    pub id: String,
+    pub name: String,
+    pub config: GatewayConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProviderStore {
+    pub active_provider_id: String,
+    pub providers: Vec<ProviderProfile>,
 }
 
 fn default_probe_cache() -> u64 {
@@ -183,6 +197,7 @@ impl GatewayConfig {
         }
     }
 
+    #[allow(dead_code)]
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
             return Ok(Self::default());
@@ -192,11 +207,96 @@ impl GatewayConfig {
         Ok(config)
     }
 
+    #[allow(dead_code)]
     pub fn save(&self, path: &Path) -> Result<()> {
         self.validate()?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
+        if path.exists() {
+            let old = std::fs::read(path)?;
+            if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&old) {
+                let backup = path.with_extension("swift-backup.json");
+                if value.get("baseURL").is_some() && !backup.exists() {
+                    crate::paths::write_private(&backup, &old)?;
+                }
+            }
+        }
+        crate::paths::write_private(path, &serde_json::to_vec_pretty(self)?)?;
+        Ok(())
+    }
+}
+
+impl ProviderStore {
+    pub fn from_legacy(config: GatewayConfig) -> Self {
+        Self {
+            active_provider_id: "default".into(),
+            providers: vec![ProviderProfile {
+                id: "default".into(),
+                name: if config.display_name.trim().is_empty() {
+                    "Default provider".into()
+                } else {
+                    config.display_name.clone()
+                },
+                config,
+            }],
+        }
+    }
+
+    pub fn default_store() -> Self {
+        Self::from_legacy(GatewayConfig::default())
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        if self.providers.is_empty() {
+            return Err(anyhow!("Keep at least one provider profile."));
+        }
+        let ids = self
+            .providers
+            .iter()
+            .map(|provider| provider.id.as_str())
+            .collect::<HashSet<_>>();
+        if ids.len() != self.providers.len()
+            || self.providers.iter().any(|provider| {
+                provider.id.trim().is_empty()
+                    || provider.name.trim().is_empty()
+                    || provider.name.chars().count() > 80
+                    || (provider.config.validate().is_err()
+                        && !(provider.config.base_url.trim().is_empty()
+                            && provider.config.upstream_model.trim().is_empty()))
+            })
+        {
+            return Err(anyhow!("Provider profile is invalid."));
+        }
+        if !ids.contains(self.active_provider_id.as_str()) {
+            return Err(anyhow!("Active provider profile is missing."));
+        }
+        Ok(())
+    }
+
+    pub fn active(&self) -> Result<&ProviderProfile> {
+        self.providers
+            .iter()
+            .find(|provider| provider.id == self.active_provider_id)
+            .ok_or_else(|| anyhow!("Active provider profile is missing."))
+    }
+
+    pub fn load(path: &Path) -> Result<Self> {
+        if !path.exists() {
+            return Ok(Self::default_store());
+        }
+        let bytes = std::fs::read(path)?;
+        if let Ok(store) = serde_json::from_slice::<Self>(&bytes) {
+            store.validate()?;
+            return Ok(store);
+        }
+        let legacy: GatewayConfig = serde_json::from_slice(&bytes)?;
+        legacy.validate()?;
+        Ok(Self::from_legacy(legacy))
+    }
+
+    pub fn save(&self, path: &Path) -> Result<()> {
+        self.validate()?;
         if path.exists() {
             let old = std::fs::read(path)?;
             if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&old) {
@@ -243,5 +343,46 @@ mod tests {
             config.base_url = value.into();
             assert!(config.validate().is_err());
         }
+    }
+
+    #[test]
+    fn loads_legacy_settings_as_a_default_provider_profile() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        let legacy = valid();
+        legacy.save(&path).unwrap();
+        let store = ProviderStore::load(&path).unwrap();
+        assert_eq!(store.active_provider_id, "default");
+        assert_eq!(store.providers.len(), 1);
+        assert_eq!(store.providers[0].config, legacy);
+    }
+
+    #[test]
+    fn validates_multiple_provider_profiles_and_active_selection() {
+        let first = valid();
+        let mut second = valid();
+        second.public_model = "claude-second".into();
+        let store = ProviderStore {
+            active_provider_id: "second".into(),
+            providers: vec![
+                ProviderProfile {
+                    id: "first".into(),
+                    name: "First".into(),
+                    config: first,
+                },
+                ProviderProfile {
+                    id: "second".into(),
+                    name: "Second".into(),
+                    config: second,
+                },
+            ],
+        };
+        assert_eq!(store.active().unwrap().id, "second");
+        assert!(store.validate().is_ok());
+    }
+
+    #[test]
+    fn allows_the_initial_empty_default_profile_before_first_save() {
+        assert!(ProviderStore::default_store().validate().is_ok());
     }
 }

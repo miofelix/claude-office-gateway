@@ -17,7 +17,7 @@
 | `gateway.rs` | localhost HTTPS 路由、认证、Host/Origin/CORS、请求限制、上游传输、探针缓存 |
 | `protocol.rs`、`stream.rs` | Anthropic ↔ OpenAI 转换、工具/图片/推理参数、SSE 增量转换 |
 | `providers.rs` | 供应商特有的请求兼容：DeepSeek 官方接口工具会话保持非思考模式 |
-| `config.rs`、`paths.rs` | 配置验证、原子写入、文件权限、旧版 Swift 字段兼容 |
+| `config.rs`、`paths.rs` | 多供应商 profile、活动 profile 切换、配置验证、原子写入、文件权限、旧版 Swift 字段兼容 |
 | `credentials.rs`、`certificate.rs` | 系统凭据、用户级证书信任、证书生成与删除 |
 
 借鉴 `cc-switch` 的模块分层与原生桌面生命周期，不引入其无关的 CLI 管理、用量数据库、同步和技能管理功能。
@@ -25,6 +25,7 @@
 ## 行为
 
 - 编辑草稿独立于运行状态。刷新不会丢失草稿；运行时禁止修改配置，复制始终基于已保存配置。
+- 供应商以 profile 保存在 `settings.json` 中；每个 profile 有独立名称、API 配置和系统凭据库条目。旧版单供应商配置自动迁移为 `default` profile。停止网关后才能切换 profile；切换不会把未保存草稿带到另一个 profile。
 - 保存不会检测上游；连接显式执行两次短请求。原有 `x`、`.` 非流式探针仅在真实成功后缓存，普通 Office 请求不缓存。
 - 密钥留空表示沿用系统中已保存的密钥；复制隐藏的网关令牌由 Rust 直接写入剪贴板。
 - 停止既关闭监听器，也取消当前检测。前端与 Rust 均隔离旧结果；保存尚未完成时取消也不会随后启动新监听器。

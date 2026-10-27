@@ -145,6 +145,18 @@ const zh: Record<string, string> = {
   "Open GitHub repository": "打开 GitHub 仓库",
   "Current user · localhost only": "当前用户 · 仅限本机",
   "Model provider": "模型供应商",
+  "Saved provider profiles": "已保存的供应商",
+  "Save several providers and switch between them when the gateway is stopped.":
+    "可以保存多个供应商；停止网关后即可切换。",
+  "＋ New provider": "＋ 新建供应商",
+  "Provider profile name": "供应商名称",
+  "For example, OpenAI production": "例如：OpenAI 生产环境",
+  "Discard changes": "放弃修改",
+  "Save or discard the current provider changes before switching.":
+    "切换前请先保存或放弃当前供应商修改。",
+  "Enter a provider name.": "请输入供应商名称。",
+  "Enter a provider name up to 80 characters.":
+    "请输入 80 个字符以内的供应商名称。",
   "Office connection": "Office 连接",
   "In Office, choose Gateway → Anthropic → x-api-key. Paste the gateway token without Bearer.":
     "在 Office 中选择 Gateway → Anthropic → x-api-key。粘贴网关令牌时无需 Bearer 前缀。",

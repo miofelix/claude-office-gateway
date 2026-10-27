@@ -33,7 +33,17 @@ export interface RuntimeState {
   error?: string;
 }
 
+export interface ProviderSummary {
+  id: string;
+  name: string;
+  base_url: string;
+  upstream_model: string;
+  public_model: string;
+}
+
 export interface AppState {
+  active_provider_id: string;
+  providers: ProviderSummary[];
   config: GatewayConfig;
   has_upstream_key: boolean;
   gateway_token: string;
@@ -56,10 +66,16 @@ export async function deleteCertificate(): Promise<AppState> {
 }
 
 export async function saveSettings(input: {
+  provider_id: string | null;
+  name: string;
   config: GatewayConfig;
   upstream_key: string;
 }): Promise<AppState> {
   return invoke<AppState>("save_settings", { input });
+}
+
+export async function selectProvider(provider_id: string): Promise<AppState> {
+  return invoke<AppState>("select_provider", { input: { provider_id } });
 }
 
 export async function connectGateway(): Promise<AppState> {

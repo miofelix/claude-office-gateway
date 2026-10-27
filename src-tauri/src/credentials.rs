@@ -6,6 +6,14 @@ const SERVICE: &str = "com.miofelix.office-gateway";
 const UPSTREAM_ACCOUNT: &str = "upstream-api-key";
 const GATEWAY_ACCOUNT: &str = "gateway-api-key";
 
+fn upstream_account(provider_id: &str) -> String {
+    if provider_id == "default" {
+        UPSTREAM_ACCOUNT.into()
+    } else {
+        format!("upstream-api-key-{provider_id}")
+    }
+}
+
 pub fn validate(value: &str) -> Result<()> {
     if !value.is_empty()
         && value.len() <= 4096
@@ -25,17 +33,17 @@ fn entry(account: &str) -> Result<Entry> {
     Ok(Entry::new(SERVICE, account)?)
 }
 
-pub fn read_upstream_key() -> Result<Option<String>> {
-    match entry(UPSTREAM_ACCOUNT)?.get_password() {
+pub fn read_upstream_key(provider_id: &str) -> Result<Option<String>> {
+    match entry(&upstream_account(provider_id))?.get_password() {
         Ok(value) => Ok(Some(value)),
         Err(keyring::Error::NoEntry) => Ok(None),
         Err(error) => Err(error.into()),
     }
 }
 
-pub fn write_upstream_key(value: &str) -> Result<()> {
+pub fn write_upstream_key(provider_id: &str, value: &str) -> Result<()> {
     validate(value)?;
-    entry(UPSTREAM_ACCOUNT)?.set_password(value)?;
+    entry(&upstream_account(provider_id))?.set_password(value)?;
     Ok(())
 }
 

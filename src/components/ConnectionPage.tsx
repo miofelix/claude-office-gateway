@@ -84,6 +84,7 @@ export function ConnectionPage({
     busy === "connecting" ||
     busy === "rechecking" ||
     ["starting", "checking"].includes(state.runtime.phase);
+  const hasDraftSavedKey = g.hasDraftSavedKey;
   const patch = (value: Partial<GatewayConfig>) =>
     setDraft({ ...draft, ...value });
   const endpoint =
@@ -227,7 +228,44 @@ export function ConnectionPage({
               description="Use the API URL, key, and model from your provider."
               done={ready}
             />
+            <div className="provider-switcher">
+              <div>
+                <strong>{t("Saved provider profiles")}</strong>
+                <p>
+                  {t(
+                    "Save several providers and switch between them when the gateway is stopped.",
+                  )}
+                </p>
+              </div>
+              <select
+                aria-label={t("Saved provider profiles")}
+                value={g.draftProviderId ?? "__new__"}
+                onChange={(event) => void g.switchProvider(event.target.value)}
+                disabled={!g.editable}
+              >
+                {state.providers.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.name}
+                    {provider.upstream_model
+                      ? " · " + provider.upstream_model
+                      : ""}
+                  </option>
+                ))}
+                <option value="__new__">{t("＋ New provider")}</option>
+              </select>
+            </div>
             <fieldset className="form-grid" disabled={!g.editable}>
+              <label className="field full-width">
+                <span>{t("Provider profile name")}</span>
+                <input
+                  value={g.draftProviderName}
+                  onChange={(event) =>
+                    g.setDraftProviderName(event.target.value)
+                  }
+                  placeholder={t("For example, OpenAI production")}
+                  maxLength={80}
+                />
+              </label>
               <label className="field">
                 <span>{t("API base URL")}</span>
                 <input
@@ -276,7 +314,7 @@ export function ConnectionPage({
                   value={g.upstreamKey}
                   onChange={(event) => g.setUpstreamKey(event.target.value)}
                   placeholder={t(
-                    state.has_upstream_key
+                    hasDraftSavedKey
                       ? "Saved key · leave blank to keep"
                       : "Paste the provider key",
                   )}
@@ -319,6 +357,15 @@ export function ConnectionPage({
                 )}
               </div>
               <div className="button-row">
+                {g.dirty && (
+                  <button
+                    className="button secondary"
+                    onClick={g.discard}
+                    disabled={!g.editable}
+                  >
+                    {t("Discard changes")}
+                  </button>
+                )}
                 <button
                   className="button secondary"
                   onClick={() => void g.save()}

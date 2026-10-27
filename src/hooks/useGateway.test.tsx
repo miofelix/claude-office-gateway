@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   connectGateway: vi.fn(),
   stopGateway: vi.fn(),
   recheckGateway: vi.fn(),
+  selectProvider: vi.fn(),
   installCertificate: vi.fn(),
   deleteCertificate: vi.fn(),
 }));
@@ -134,5 +135,56 @@ describe("gateway editing and operation lifecycle", () => {
       kind: "error",
       text: "The provider rejected the key.",
     });
+  });
+  it("creates and saves a second provider profile", async () => {
+    api.saveSettings.mockResolvedValue({
+      ...saved(),
+      active_provider_id: "provider-second",
+      providers: [
+        ...saved().providers,
+        {
+          id: "provider-second",
+          name: "Second provider",
+          base_url: "https://second.example",
+          upstream_model: "second-model",
+          public_model: "claude-second",
+        },
+      ],
+      config: {
+        ...saved().config,
+        base_url: "https://second.example",
+        upstream_model: "second-model",
+      },
+    });
+    const { result } = renderHook(useGateway);
+    await waitFor(() => expect(result.current.busy).toBeNull());
+    act(() => result.current.newProvider());
+    act(() => {
+      result.current.setDraft({
+        ...result.current.draft,
+        base_url: "https://second.example",
+        upstream_model: "second-model",
+        public_model: "claude-second",
+      });
+      result.current.setDraftProviderName("Second provider");
+      result.current.setUpstreamKey("second-key");
+    });
+    await act(() => result.current.save());
+    expect(api.saveSettings).toHaveBeenCalledWith({
+      provider_id: null,
+      name: "Second provider",
+      config: expect.objectContaining({ base_url: "https://second.example" }),
+      upstream_key: "second-key",
+    });
+  });
+  it("blocks switching while the current provider has unsaved changes", async () => {
+    const { result } = renderHook(useGateway);
+    await waitFor(() => expect(result.current.busy).toBeNull());
+    act(() => result.current.setUpstreamKey("unsaved-key"));
+    await act(() => result.current.switchProvider("default"));
+    expect(api.selectProvider).not.toHaveBeenCalled();
+    expect(result.current.notice?.text).toBe(
+      "Save or discard the current provider changes before switching.",
+    );
   });
 });

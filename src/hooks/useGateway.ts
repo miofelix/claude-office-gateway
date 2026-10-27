@@ -7,6 +7,7 @@ import {
   installCertificate,
   recheckGateway,
   saveSettings,
+  selectProvider,
   stopGateway,
   type AppState,
 } from "../lib/tauri";
@@ -14,6 +15,10 @@ export type Notice = { kind: "success" | "error"; text: string };
 export function useGateway() {
   const [state, setState] = useState(initialState);
   const [draft, setDraft] = useState(defaultConfig);
+  const [draftProviderId, setDraftProviderId] = useState<string | null>(
+    "default",
+  );
+  const [draftProviderName, setDraftProviderName] = useState("Custom model");
   const [upstreamKey, setUpstreamKey] = useState("");
   const [busy, setBusy] = useState<string | null>("loading");
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -21,13 +26,28 @@ export function useGateway() {
     working = useRef(false),
     initialized = useRef(false),
     dirty = useRef(false);
+  function providerName(next: AppState) {
+    return (
+      next.providers.find((provider) => provider.id === next.active_provider_id)
+        ?.name ?? "Custom model"
+    );
+  }
+  function replaceDraft(next: AppState) {
+    setDraft(next.config);
+    setDraftProviderId(next.active_provider_id);
+    setDraftProviderName(providerName(next));
+    setUpstreamKey("");
+  }
   dirty.current =
+    draftProviderId !== state.active_provider_id ||
+    draftProviderName !== providerName(state) ||
     JSON.stringify(draft) !== JSON.stringify(state.config) ||
     upstreamKey.length > 0;
-  const error = draftError(
-    draft,
-    state.has_upstream_key || upstreamKey.trim().length > 0,
-  );
+  const hasDraftSavedKey =
+    draftProviderId === state.active_provider_id && state.has_upstream_key;
+  const error = !draftProviderName.trim()
+    ? "Enter a provider name."
+    : draftError(draft, hasDraftSavedKey || upstreamKey.trim().length > 0);
   const editable =
     !busy &&
     !state.runtime.running &&
@@ -47,8 +67,7 @@ export function useGateway() {
       if (id !== operation.current) return false;
       setState(next);
       if (options.replaceDraft) {
-        setDraft(next.config);
-        setUpstreamKey("");
+        replaceDraft(next);
       }
       if (next.runtime.error)
         setNotice({ kind: "error", text: next.runtime.error });
@@ -81,7 +100,7 @@ export function useGateway() {
         const next = await appState();
         if (!mounted || id !== operation.current) return;
         setState(next);
-        if (!dirty.current && !working.current) setDraft(next.config);
+        if (!dirty.current && !working.current) replaceDraft(next);
       } catch {
         /* Explicit refresh exposes failures without repeatedly interrupting editing. */
       }
@@ -103,7 +122,13 @@ export function useGateway() {
     }
     return run(
       "saving",
-      () => saveSettings({ config: draft, upstream_key: upstreamKey }),
+      () =>
+        saveSettings({
+          provider_id: draftProviderId,
+          name: draftProviderName,
+          config: draft,
+          upstream_key: upstreamKey,
+        }),
       { replaceDraft: true },
     );
   }
@@ -118,6 +143,8 @@ export function useGateway() {
         let saved = state;
         if (dirty.current) {
           saved = await saveSettings({
+            provider_id: draftProviderId,
+            name: draftProviderName,
             config: draft,
             upstream_key: upstreamKey,
           });
@@ -128,10 +155,44 @@ export function useGateway() {
       { replaceDraft: true },
     );
   }
+  function newProvider() {
+    if (!editable) {
+      setNotice({
+        kind: "error",
+        text: "Stop the gateway before editing provider settings.",
+      });
+      return false;
+    }
+    setNotice(null);
+    setDraft(defaultConfig);
+    setDraftProviderId(null);
+    setDraftProviderName("");
+    setUpstreamKey("");
+    return true;
+  }
+  async function switchProvider(id: string) {
+    if (id === "__new__") return newProvider();
+    if (dirty.current) {
+      setNotice({
+        kind: "error",
+        text: "Save or discard the current provider changes before switching.",
+      });
+      return false;
+    }
+    return run("switching", () => selectProvider(id), { replaceDraft: true });
+  }
+  function discard() {
+    replaceDraft(state);
+    setNotice(null);
+  }
   return {
     state,
     draft,
     setDraft,
+    draftProviderId,
+    draftProviderName,
+    setDraftProviderName,
+    hasDraftSavedKey,
     upstreamKey,
     setUpstreamKey,
     busy,
@@ -140,6 +201,9 @@ export function useGateway() {
     error,
     editable,
     dirty: dirty.current,
+    newProvider,
+    switchProvider,
+    discard,
     canConnect:
       !error && state.certificate.trusted && !busy && !state.runtime.running,
     save,

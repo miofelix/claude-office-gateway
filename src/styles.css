@@ -503,6 +503,46 @@ fieldset {
   justify-content: space-between;
   margin-top: 18px;
 }
+.provider-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 17px;
+  padding: 11px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface-quiet);
+}
+.provider-switcher > div {
+  min-width: 0;
+}
+.provider-switcher strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.provider-switcher p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.provider-switcher select {
+  min-width: 190px;
+  max-width: 45%;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--input-text);
+  padding: 0 9px;
+  font-size: 11.5px;
+}
+.provider-switcher select:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px var(--focus-soft);
+  outline: none;
+}
 .provider-hint {
   display: flex;
   align-items: center;
@@ -1017,6 +1057,17 @@ dialog p {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
+  }
+  .provider-switcher {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .provider-switcher select {
+    width: 100%;
+    max-width: none;
+  }
+  .provider-actions .button-row {
+    flex-wrap: wrap;
   }
   .provider-hint {
     max-width: none;

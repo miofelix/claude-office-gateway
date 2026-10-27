@@ -19,12 +19,12 @@ This beta uses ad-hoc macOS signing without Apple notarization. Windows installe
 Requires macOS 13+ or Windows 10/11 with WebView2. The interface supports English and Simplified Chinese. The top-right appearance selector offers Light, Dark, and Follow system. The choice persists across launches, and system mode responds to live appearance changes.
 
 1. Install the certificate from the **Local HTTPS certificate** card and complete the system confirmation. Check and uninstall actions are in the same card. It is a one-year, self-signed localhost certificate installed for your current user. Certificate verification cannot be restricted to one port; see [certificate scope and platform differences](docs/CERTIFICATE_SCOPE.md).
-2. Enter an HTTPS API base URL, protocol, provider key, and exact model ID. **Save** saves without sending requests; **Save and connect** saves and sends two small checks that your provider may bill.
+2. Choose or create a saved provider profile, then enter its HTTPS API base URL, protocol, provider key, and exact model ID. **Save** saves without sending requests; **Save and connect** saves and sends two small checks that your provider may bill. Stop the gateway before switching profiles.
 3. In the Claude Office add-in, choose **Gateway**, **Anthropic** format, and **x-api-key** authentication. Copy the URL, gateway token, and Office model ID from the client. Paste the token without `Bearer`.
 
 The Office model ID must start with `claude`, for example `claude-office-custom`. It is a gateway alias mapped to your actual provider model; keep the provider’s exact ID in **Provider model**. If Office reports “Enter a Claude model name or a gateway alias that references one”, check this alias.
 
-Keep the client running while using Office. Closing its window keeps the connection alive; quitting stops it. Reopen from the Dock or tray. After relaunch, click **Connect gateway**; a saved provider key does not need to be re-entered.
+Keep the client running while using Office. Closing its window keeps the connection alive; quitting stops it. Reopen from the Dock or tray. After relaunch, choose the saved profile and click **Connect gateway**; saved provider keys do not need to be re-entered.
 
 **Lightweight mode** releases the main window and web view while keeping the gateway and tray running. Enable it from the tray menu or **Advanced settings**. Open from the tray or launch the app again to rebuild the window. Unsaved changes require a choice before entry; the mode lasts for the current session only. [Behavior and validation](docs/LIGHTWEIGHT_MODE.md).
 

@@ -15,6 +15,16 @@ localStorage.setItem(
 localStorage.setItem("office-gateway-auto-check-updates", "false");
 const longText = "https://provider.example/" + "diagnosticsegment".repeat(32);
 const state = {
+  active_provider_id: "default",
+  providers: [
+    {
+      id: "default",
+      name: "Fixture provider",
+      base_url: "https://provider.example",
+      upstream_model: "example-model",
+      public_model: "claude-" + "long-model-alias".repeat(8),
+    },
+  ],
   config: {
     ...defaultConfig,
     base_url: "https://provider.example",
