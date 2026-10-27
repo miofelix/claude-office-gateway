@@ -172,31 +172,64 @@ pub fn generate_identity() -> Result<(String, String, Vec<u8>)> {
     Ok((cert.pem(), key.serialize_pem(), cert.der().to_vec()))
 }
 fn run(command: &mut Command) -> Result<()> {
-    let output = command.output()?;
+    let output = background_output(command)?;
     if output.status.success() {
         Ok(())
     } else {
         Err(anyhow!("The system certificate operation was cancelled or failed ({}). Identity files were preserved.",output.status))
     }
 }
+fn background_output(command: &mut Command) -> std::io::Result<std::process::Output> {
+    command.output()
+}
 #[cfg(target_os = "windows")]
 fn powershell(script: &str) -> std::io::Result<std::process::Output> {
-    Command::new("powershell.exe")
-        .args(["-NoProfile", "-NonInteractive", "-Command", script])
-        .output()
+    background_output(Command::new("powershell.exe").args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        script,
+    ]))
 }
 
 #[cfg(all(test, target_os = "windows"))]
 mod windows_tests {
     use super::*;
+    const CONSOLE_PROBE: &str = r#"$ErrorActionPreference='Stop'; Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CertificateConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; [CertificateConsoleProbe]::GetConsoleWindow().ToInt64()"#;
+
+    #[test]
+    fn background_launcher_prevents_console_allocation_with_a_positive_control() {
+        use std::os::windows::process::CommandExt;
+        let console_command = || {
+            let mut command = Command::new("powershell.exe");
+            command.args(["-NoProfile", "-NonInteractive", "-Command", CONSOLE_PROBE]);
+            // A GUI process can cause a console child to allocate a window.
+            // Request one explicitly so CI's headless parent cannot hide it.
+            command.creation_flags(0x0000_0010); // CREATE_NEW_CONSOLE
+            command
+        };
+        let control = console_command().output().unwrap();
+        assert!(control.status.success());
+        assert_ne!(
+            String::from_utf8(control.stdout).unwrap().trim(),
+            "0",
+            "The positive control must allocate a console in this environment"
+        );
+        let output = background_output(&mut console_command()).unwrap();
+        assert!(output.status.success());
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap().trim(),
+            "0",
+            "Background certificate tools must override console allocation"
+        );
+    }
 
     #[test]
     fn repeated_certificate_checks_do_not_allocate_a_console() {
         // Exercise the exact PowerShell launcher used by trusted(), without
         // touching the user's certificate store. A nonzero HWND is the flash.
-        let script = r#"$ErrorActionPreference='Stop'; Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CertificateConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; [CertificateConsoleProbe]::GetConsoleWindow().ToInt64()"#;
         for _ in 0..3 {
-            let output = powershell(script).expect("Start certificate-check PowerShell");
+            let output = powershell(CONSOLE_PROBE).expect("Start certificate-check PowerShell");
             assert!(
                 output.status.success(),
                 "Console probe must run successfully"
