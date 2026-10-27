@@ -9,3 +9,6 @@ src-tauri/gen
 src-tauri/icons/generated
 .env*
 
+artifacts
+
+__pycache__/
