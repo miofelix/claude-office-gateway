@@ -15,6 +15,8 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  "DeepSeek tool conversations use non-thinking mode so Office can call tools and return their results reliably. Plain text requests keep their original thinking settings.":
+    "DeepSeek 工具对话会使用非思考模式，确保 Office 能正常调用工具并回传结果。普通文本请求保留原有思考设置。",
   'Office requires a model ID starting with "claude", such as "claude-office-custom". This gateway alias maps to your provider model.':
     "Office 要求模型 ID 以「claude」开头，例如「claude-office-custom」。此网关别名会映射到供应商模型。",
   'Office requires the model ID to start with "claude", such as "claude-office-custom". Use this gateway alias in Office; keep the actual model ID in Provider model.':

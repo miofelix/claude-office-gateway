@@ -42,6 +42,16 @@ export function providerHost(value: string) {
     return "your provider";
   }
 }
+export function usesDeepSeekToolCompatibility(config: GatewayConfig) {
+  try {
+    return (
+      new URL(config.base_url).hostname === "api.deepseek.com" &&
+      config.upstream_protocol !== "openai_responses"
+    );
+  } catch {
+    return false;
+  }
+}
 export function draftError(draft: GatewayConfig, hasKey: boolean) {
   try {
     const url = new URL(draft.base_url);

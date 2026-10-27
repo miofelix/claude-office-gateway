@@ -645,3 +645,178 @@ async fn http2_authority_allows_office_preflight_and_rejects_foreign_or_conflict
         .unwrap();
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn deepseek_tools_and_results_use_non_thinking_mode_without_changing_other_requests() {
+    async fn provider(request: Request) -> Response {
+        let chat = !request.uri().path().contains("/anthropic/");
+        let count = request.uri().path().ends_with("/count_tokens");
+        let deepseek = request.uri().host() == Some("api.deepseek.com")
+            || request
+                .headers()
+                .get(header::HOST)
+                .is_some_and(|h| h.to_str().unwrap_or("").starts_with("api.deepseek.com:"));
+        let body: Value =
+            serde_json::from_slice(&to_bytes(request.into_body(), 16384).await.unwrap()).unwrap();
+        if deepseek
+            && !chat
+            && body["tools"]
+                .as_array()
+                .is_some_and(|tools| tools.iter().any(|tool| tool["type"] == "custom"))
+        {
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({"error":{"message":"Unknown tool type custom"}})),
+            )
+                .into_response();
+        }
+        let with_tools = body["tools"]
+            .as_array()
+            .is_some_and(|tools| !tools.is_empty())
+            || body["messages"].as_array().unwrap().iter().any(|message| {
+                message["role"] == "tool"
+                    || message["content"].as_array().is_some_and(|blocks| {
+                        blocks.iter().any(|block| block["type"] == "tool_result")
+                    })
+            });
+        let compatible = if count {
+            body.get("thinking").is_none() && body.get("output_config").is_none()
+        } else if deepseek && with_tools {
+            body["thinking"]["type"] == "disabled"
+                && body["output_config"].get("effort").is_none()
+                && body.get("reasoning_effort").is_none()
+        } else if chat {
+            body.get("thinking").is_none() && body["reasoning_effort"] == "high"
+        } else {
+            body["thinking"]["type"] == "adaptive"
+                && body["output_config"]["effort"] == "high"
+                && body["tools"]
+                    .as_array()
+                    .is_none_or(|tools| tools.iter().all(|tool| tool["type"] == "custom"))
+        };
+        if !compatible {
+            return (StatusCode::BAD_REQUEST, Json(json!({"error":{"type":"invalid_request_error","message":"Thinking mode does not support this tool_choice"}}))).into_response();
+        }
+        if count {
+            return Json(json!({"input_tokens":3})).into_response();
+        }
+        if chat {
+            return Json(json!({"id":"test","model":"deepseek-flash","choices":[{"message":{"role":"assistant","content":"OK"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1}})).into_response();
+        }
+        Json(json!({"id":"test","type":"message","role":"assistant","model":"deepseek-flash","content":[{"type":"text","text":"OK"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}})).into_response()
+    }
+    let key = rcgen::KeyPair::generate().unwrap();
+    let cert = rcgen::CertificateParams::new(vec![
+        "api.deepseek.com".into(),
+        "api.example.com".into(),
+        "api.deepseek.com.example.com".into(),
+    ])
+    .unwrap()
+    .self_signed(&key)
+    .unwrap();
+    let (port, handle) = serve(
+        Router::new().fallback(any(provider)),
+        &cert.pem(),
+        &key.serialize_pem(),
+    )
+    .await;
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .add_root_certificate(reqwest::Certificate::from_der(cert.der()).unwrap())
+        .resolve("api.deepseek.com", ([127, 0, 0, 1], port).into())
+        .resolve("api.example.com", ([127, 0, 0, 1], port).into())
+        .resolve(
+            "api.deepseek.com.example.com",
+            ([127, 0, 0, 1], port).into(),
+        )
+        .build()
+        .unwrap();
+    for protocol in [UpstreamProtocol::Anthropic, UpstreamProtocol::OpenaiChat] {
+        for (host, choice) in [
+            ("api.deepseek.com", "tool"),
+            ("api.deepseek.com", "any"),
+            ("api.deepseek.com", "auto"),
+            ("api.deepseek.com", "plain"),
+            ("api.deepseek.com", "result"),
+            ("api.deepseek.com", "default"),
+            ("api.deepseek.com", "count"),
+            ("api.example.com", "tool"),
+            ("api.deepseek.com.example.com", "tool"),
+        ] {
+            if choice == "count" && protocol != UpstreamProtocol::Anthropic {
+                continue;
+            }
+            let mut cfg = config();
+            let path = if protocol == UpstreamProtocol::Anthropic {
+                "/anthropic"
+            } else {
+                ""
+            };
+            cfg.base_url = format!("https://{host}:{port}{path}");
+            cfg.upstream_protocol = protocol.clone();
+            let app = GatewayRouter::with_client(
+                cfg,
+                "gateway-secret".into(),
+                "provider-secret".into(),
+                client.clone(),
+            )
+            .unwrap()
+            .app();
+            let mut body = request();
+            body["thinking"] = json!({"type":"adaptive"});
+            body["output_config"] = json!({"effort":"high"});
+            body["tools"] = json!([{"type":"custom","name":"read","input_schema":{"type":"object","properties":{}}}]);
+            body["tool_choice"] = json!({"type":choice});
+            if choice == "plain" {
+                body.as_object_mut().unwrap().remove("tools");
+                body.as_object_mut().unwrap().remove("tool_choice");
+            }
+            if choice == "tool" {
+                body["tool_choice"]["name"] = json!("read");
+            }
+            if choice == "result" {
+                body.as_object_mut().unwrap().remove("tools");
+                body.as_object_mut().unwrap().remove("tool_choice");
+                body["messages"] = json!([
+                    {"role":"user","content":"read"},
+                    {"role":"assistant","content":[{"type":"tool_use","id":"a","name":"read","input":{}}]},
+                    {"role":"user","content":[{"type":"tool_result","tool_use_id":"a","content":"3"}]}
+                ]);
+            }
+            if choice == "default" {
+                body.as_object_mut().unwrap().remove("thinking");
+                body.as_object_mut().unwrap().remove("output_config");
+                body["tool_choice"] = json!({"type":"auto"});
+                body["tools"][0].as_object_mut().unwrap().remove("type");
+            }
+            if choice == "count" {
+                body.as_object_mut().unwrap().remove("thinking");
+                body.as_object_mut().unwrap().remove("output_config");
+                body.as_object_mut().unwrap().remove("tool_choice");
+            }
+            let uri = if choice == "count" {
+                "/v1/messages/count_tokens"
+            } else {
+                "/v1/messages"
+            };
+            let response = app
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri(uri)
+                        .header(header::HOST, "localhost:15724")
+                        .header("x-api-key", "gateway-secret")
+                        .body(Body::from(body.to_string()))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                response.status(),
+                StatusCode::OK,
+                "provider={host}, protocol={protocol:?}, choice={choice}"
+            );
+        }
+    }
+    handle.shutdown();
+}

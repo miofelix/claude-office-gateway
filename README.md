@@ -26,6 +26,8 @@ The Office model ID must start with `claude`, for example `claude-office-custom`
 
 Keep the client running while using Office. Closing its window keeps the connection alive; quitting stops it. Reopen from the Dock or tray. After relaunch, click **Connect gateway**; a saved provider key does not need to be re-entered.
 
+For the official DeepSeek API, native function tool definitions are normalized and tool conversations use non-thinking mode with Anthropic Messages or OpenAI Chat Completions. This avoids rejected Office tool definitions, forced tool calls and missing thinking history on tool results. Plain text requests and other providers keep their original behavior. See [DeepSeek compatibility and validation](docs/DEEPSEEK.md).
+
 Keys use macOS Keychain or Windows Credential Manager. This client has no telemetry and does not store request bodies or document contents. Requests reach your configured provider; Office and that provider have their own data policies.
 
 ## Build and verify

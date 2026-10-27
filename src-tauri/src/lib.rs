@@ -6,6 +6,7 @@ mod credentials;
 mod gateway;
 mod paths;
 mod protocol;
+mod providers;
 mod runtime;
 mod stream;
 #[cfg(test)]

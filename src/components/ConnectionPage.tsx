@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useGateway } from "../hooks/useGateway";
-import { phaseLabel } from "../lib/config";
+import { phaseLabel, usesDeepSeekToolCompatibility } from "../lib/config";
 import { t } from "../lib/i18n";
 import type { GatewayConfig, Protocol } from "../lib/tauri";
 import { CopyRow } from "./shared";
@@ -282,6 +282,16 @@ export function ConnectionPage({
                 />
               </label>
             </fieldset>
+            {usesDeepSeekToolCompatibility(draft) && (
+              <p className="model-alias-hint">
+                <Info size={14} />
+                <span>
+                  {t(
+                    "DeepSeek tool conversations use non-thinking mode so Office can call tools and return their results reliably. Plain text requests keep their original thinking settings.",
+                  )}
+                </span>
+              </p>
+            )}
             <div className="provider-actions">
               <div className="provider-hint">
                 {pending ? (

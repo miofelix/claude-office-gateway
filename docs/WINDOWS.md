@@ -1,6 +1,6 @@
 # Windows 验证交接
 
-Windows 版本与 macOS 共用 React/Rust 核心，包含 Windows 凭据管理器、当前用户证书存储、原生标题栏、AppUserModelID、单实例、托盘和 NSIS/MSI 配置。当前机器未执行 Windows 构建或运行验证。
+Windows 版本与 macOS 共用 React/Rust 核心，包含 Windows 凭据管理器、当前用户证书存储、原生标题栏、AppUserModelID、单实例、托盘和 NSIS/MSI 配置。当前机器是 macOS；Windows 原生自动检查和安装器构建通过 GitHub Actions 的 Windows runner 进行，结果见 [公测版验证记录](RELEASE_VALIDATION.md)。真实 Windows 安装和 Office 交互仍需以下人工验证。
 
 ## 环境
 
@@ -31,6 +31,7 @@ npm ci
 5. 关闭主窗口后确认请求继续；从托盘恢复。检查菜单中的连接状态、连接/检测、停止、复制地址/令牌/模型 ID、GitHub 和退出；复制与检测操作应按状态启用。重复启动应用应聚焦已有窗口。退出应用应释放端口。
 6. 重启后直接使用已保存密钥连接。输入错误密钥、占用端口、检测中停止时，检查错误提示与状态恢复。
 7. 在同一证书卡片卸载证书，确认网关停止、仅对应指纹的用户证书被移除、配置与供应商密钥保留。重新安装后可恢复。
-8. 分别检查安装、升级与卸载流程；用户数据与信任的清理由应用设置中的显式操作完成，卸载器不会静默删除用户凭据。
+8. 点击标题旁版本号，确认原生版本和 beta 通道。检查启动自动检查开关、手动检查和更新说明链接；有更新时验证下载进度、签名校验和安装重启，并分别验证 EXE 与 MSI 安装的更新路径。MSI 数值版本与应用 SemVer 的映射见 [发布流程](RELEASING.md)。
+9. 分别检查安装、升级与卸载流程；用户数据与信任的清理由应用设置中的显式操作完成，卸载器不会静默删除用户凭据。
 
 如需隔离日常配置，可在独立测试会话设置 `OFFICE_GATEWAY_DATA_DIR`。需要验证实际 Windows Credential Manager 时不要启用 `OFFICE_GATEWAY_TEST_MODE`。

@@ -15,6 +15,7 @@
 | `runtime.rs` | 监听器、启动/验证/停止状态、取消、端口错误、信任失效后的停止 |
 | `gateway.rs` | localhost HTTPS 路由、认证、Host/Origin/CORS、请求限制、上游传输、探针缓存 |
 | `protocol.rs`、`stream.rs` | Anthropic ↔ OpenAI 转换、工具/图片/推理参数、SSE 增量转换 |
+| `providers.rs` | 供应商特有的请求兼容：DeepSeek 官方接口工具会话保持非思考模式 |
 | `config.rs`、`paths.rs` | 配置验证、原子写入、文件权限、旧版 Swift 字段兼容 |
 | `credentials.rs`、`certificate.rs` | 系统凭据、用户级证书信任、证书生成与删除 |
 

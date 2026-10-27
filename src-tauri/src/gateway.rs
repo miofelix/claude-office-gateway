@@ -1,6 +1,6 @@
 use crate::{
     config::{GatewayConfig, UpstreamProtocol},
-    protocol, stream,
+    protocol, providers, stream,
 };
 use axum::{
     body::{to_bytes, Body},
@@ -185,6 +185,7 @@ impl GatewayRouter {
             ),
         };
         outgoing["model"] = json!(self.config.upstream_model);
+        providers::prepare_request(&self.config, &body, &mut outgoing, count);
         let streaming = !count && body["stream"] == true;
         let mut request = self
             .client

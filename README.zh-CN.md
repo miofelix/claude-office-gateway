@@ -24,6 +24,8 @@ Office 模型 ID 必须以 `claude` 开头，例如 `claude-office-custom`。这
 
 使用期间保持客户端运行。关闭窗口后仍继续服务；退出应用后停止。再次启动时点击连接即可，无需重新输入已保存密钥。
 
+DeepSeek 官方接口通过 Anthropic Messages 或 OpenAI Chat Completions 接入时，自动适配 Office 函数工具格式，工具对话使用非思考模式，避免工具定义、强制调用及缺少思考历史的结果回传被拒绝。普通文本请求和其他供应商保留原有行为。[兼容处理与验证记录](docs/DEEPSEEK.md)。
+
 密钥保存在 macOS 钥匙串或 Windows 凭据管理器。应用没有遥测，也不保存请求正文或文档内容。
 
 ## 验证与构建
