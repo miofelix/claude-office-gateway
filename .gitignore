@@ -12,3 +12,9 @@ src-tauri/icons/generated
 artifacts
 
 __pycache__/
+
+# Release private keys must stay outside the repository.
+*.key
+*.p8
+*.p12
+tools/update-verifier/target

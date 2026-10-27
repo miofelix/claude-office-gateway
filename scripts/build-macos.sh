@@ -6,5 +6,5 @@ if [[ "$(uname -s)" != Darwin ]]; then
     printf '%s\n' 'Run this script on macOS.' >&2
     exit 1
 fi
-npm run build -- --bundles app,dmg
+npm run build -- --bundles app,dmg --config src-tauri/tauri.local.conf.json
 python3 scripts/collect-macos.py "$@"

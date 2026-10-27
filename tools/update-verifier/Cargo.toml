@@ -1,0 +1,9 @@
+[package]
+name = "office-update-verifier"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.22"
+minisign-verify = "0.2.5"
+serde_json = "1"

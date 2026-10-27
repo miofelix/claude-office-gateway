@@ -4,6 +4,14 @@
 
 基于 Tauri 2、React、TypeScript 和 Rust 重构。架构参考 `cc-switch` 的桌面壳体、命令调用、单实例和托盘模式，网关能力迁移自原生 Swift 客户端。
 
+## 测试版下载与更新
+
+当前版本 **0.2.0-beta.1**。[下载测试版](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.1)：macOS 提供 Apple Silicon / Intel DMG；Windows x64 提供 EXE / MSI。
+
+点击应用标题旁的版本号可检查更新、查看更新说明和下载进度。默认启动时检查更新，可关闭；安装由你手动触发，验证签名后重启应用。测试版订阅 beta 通道，正式版订阅 stable 通道；beta 通道也接收更高版本的正式版。
+
+本测试版的 macOS 包为 ad-hoc 签名，尚未完成 Apple 公证；Windows 安装器尚无 Authenticode 签名，首次运行可能出现系统提示。更新包另有强制 Minisign 签名验证。[发布与签名流程](docs/RELEASING.md)。
+
 ## 使用
 
 要求 macOS 13+，或安装了 WebView2 的 Windows 10/11。界面支持简体中文与英文。右上角提供「亮色／暗色／跟随系统」，会记住选择；跟随系统时实时响应系统外观变化。
@@ -39,7 +47,7 @@ Windows PowerShell：
 ./scripts/build-windows.ps1
 ```
 
-产物集中在 `artifacts/macos/`、`artifacts/windows/`。本地 macOS 包采用 ad-hoc 签名；公开发行需另行完成 Developer ID 签名和公证。
+产物集中在 `artifacts/macos/`、`artifacts/windows/`。本地构建不需要发布私钥，不生成可用于官方更新的签名。测试版 macOS 包采用 ad-hoc 签名；Developer ID 签名和公证尚未完成。
 
 迁移旧版前先退出 Swift 客户端，释放 `15724` 端口。新版直接读取原配置和原钥匙串条目；第一次保存会备份 Swift 配置，不替换已信任的证书。旧 PKCS#12 私钥会在需要时本地转换为仅当前用户可读的 PEM。
 

@@ -1,0 +1,42 @@
+name: Desktop checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Rust toolchain
+        shell: bash
+        run: rustup update stable --no-self-update && rustup default stable && rustup component add rustfmt clippy
+      - name: Windows native dependency
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install nasm --no-progress -y
+          'C:\Program Files\NASM' >> $env:GITHUB_PATH
+      - run: npm ci
+      - name: macOS checks
+        if: runner.os == 'macOS'
+        run: ./scripts/check.sh
+      - name: Windows checks
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/check.ps1

@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 if ($env:OS -ne 'Windows_NT') { throw 'Run this script on Windows.' }
-& npm run build -- --bundles nsis,msi
+& npm run build -- --bundles nsis,msi --config src-tauri/tauri.local.conf.json
 if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed.' }
 $destination = Join-Path (Get-Location) 'artifacts/windows'
 New-Item -ItemType Directory -Force -Path $destination | Out-Null

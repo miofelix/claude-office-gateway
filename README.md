@@ -6,6 +6,14 @@ A macOS and Windows desktop client that connects the Claude add-ins for **PowerP
 
 Supports Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses, including streamed text, client function tools, tool result screenshots, model aliases, and the Office connection probes. Exact token counting requires an Anthropic upstream. Unsupported hosted tools and content are rejected locally.
 
+## Beta download and updates
+
+Current version: **0.2.0-beta.1**. [Download the beta](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.1): Apple Silicon / Intel DMG and Windows x64 EXE / MSI.
+
+Click the version beside the app title for update checks, release notes and download progress. Startup checks are enabled by default and can be disabled. Installation is manual, verifies the update signature, then restarts the app. Prereleases use the beta channel; stable builds use stable. Beta also receives newer stable releases.
+
+This beta uses ad-hoc macOS signing without Apple notarization. Windows installers do not have Authenticode signing. Initial installation may show operating-system trust prompts. Update payloads independently require Minisign verification. See [release and signing operations](docs/RELEASING.md).
+
 ## Use
 
 Requires macOS 13+ or Windows 10/11 with WebView2. The interface supports English and Simplified Chinese. The top-right appearance selector offers Light, Dark, and Follow system. The choice persists across launches, and system mode responds to live appearance changes.
@@ -41,7 +49,7 @@ On Windows, in PowerShell:
 ./scripts/build-windows.ps1
 ```
 
-Collected installers and application bundles are written to `artifacts/macos/` or `artifacts/windows/`. Dependencies are locked in `package-lock.json` and `src-tauri/Cargo.lock`. The macOS build uses ad-hoc signing for local use; public distribution requires Developer ID signing and notarization.
+Collected installers and application bundles are written to `artifacts/macos/` or `artifacts/windows/`. Dependencies are locked in `package-lock.json` and `src-tauri/Cargo.lock`. Local builds need no release private key and do not generate official signed update payloads. Beta macOS packages use ad-hoc signing; Developer ID signing and notarization are still pending.
 
 ## Upgrading the Swift client
 

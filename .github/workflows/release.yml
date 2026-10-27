@@ -1,0 +1,89 @@
+name: Publish desktop release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Exact application version, for example 0.2.0-beta.1'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: official-desktop-release
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: aarch64-apple-darwin
+            platform: macos-aarch64
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            platform: macos-x86_64
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Rust toolchain
+        shell: bash
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustup component add rustfmt clippy
+          rustup target add ${{ matrix.target }}
+      - name: Windows native dependency
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install nasm --no-progress -y
+          'C:\Program Files\NASM' >> $env:GITHUB_PATH
+      - run: npm ci
+      - name: macOS checks
+        if: runner.os == 'macOS'
+        run: ./scripts/check.sh
+      - name: Windows checks
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/check.ps1
+      - name: Build and verify signed installers
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then chcp.com 65001; fi
+          python scripts/build-signed-release.py --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ matrix.platform }}
+          path: artifacts/release/${{ matrix.platform }}/
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: artifacts/release
+      - name: Publish only after all native builds and signature checks pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-release.py --source "$GITHUB_SHA"
