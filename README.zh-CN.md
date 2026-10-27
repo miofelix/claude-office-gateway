@@ -6,7 +6,7 @@
 
 ## 测试版下载与更新
 
-当前版本 **0.2.0-beta.1**。[下载测试版](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.1)：macOS 提供 Apple Silicon / Intel DMG；Windows x64 提供 EXE / MSI。
+当前版本 **0.2.0-beta.2**。[下载测试版](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.2)：macOS 提供 Apple Silicon / Intel DMG；Windows x64 提供 EXE / MSI。
 
 点击应用标题旁的版本号可检查更新、查看更新说明和下载进度。默认启动时检查更新，可关闭；安装由你手动触发，验证签名后重启应用。测试版订阅 beta 通道，正式版订阅 stable 通道；beta 通道也接收更高版本的正式版。
 
@@ -23,6 +23,8 @@
 Office 模型 ID 必须以 `claude` 开头，例如 `claude-office-custom`。这是映射到供应商模型的网关别名，真实模型 ID 仍填在「供应商模型」。若 Office 提示 “Enter a Claude model name or a gateway alias that references one”，请检查此别名。
 
 使用期间保持客户端运行。关闭窗口后仍继续服务；退出应用后停止。再次启动时点击连接即可，无需重新输入已保存密钥。
+
+**轻量模式**会释放主窗口和 WebView，网关与状态栏／托盘继续运行。从状态栏／托盘菜单或「高级设置」进入；从托盘打开或再次启动应用即可重建窗口。有未保存修改时先提示，模式仅在当前运行会话生效。[行为与验证记录](docs/LIGHTWEIGHT_MODE.md)。
 
 DeepSeek 官方接口通过 Anthropic Messages 或 OpenAI Chat Completions 接入时，自动适配 Office 函数工具格式，工具对话使用非思考模式，避免工具定义、强制调用及缺少思考历史的结果回传被拒绝。普通文本请求和其他供应商保留原有行为。[兼容处理与验证记录](docs/DEEPSEEK.md)。
 

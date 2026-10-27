@@ -733,7 +733,7 @@ dependencies = [
 
 [[package]]
 name = "claude-office-gateway"
-version = "0.2.0-beta.1"
+version = "0.2.0-beta.2"
 dependencies = [
  "anyhow",
  "arboard",

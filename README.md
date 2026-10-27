@@ -8,7 +8,7 @@ Supports Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses, incl
 
 ## Beta download and updates
 
-Current version: **0.2.0-beta.1**. [Download the beta](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.1): Apple Silicon / Intel DMG and Windows x64 EXE / MSI.
+Current version: **0.2.0-beta.2**. [Download the beta](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.2): Apple Silicon / Intel DMG and Windows x64 EXE / MSI.
 
 Click the version beside the app title for update checks, release notes and download progress. Startup checks are enabled by default and can be disabled. Installation is manual, verifies the update signature, then restarts the app. Prereleases use the beta channel; stable builds use stable. Beta also receives newer stable releases.
 
@@ -25,6 +25,8 @@ Requires macOS 13+ or Windows 10/11 with WebView2. The interface supports Englis
 The Office model ID must start with `claude`, for example `claude-office-custom`. It is a gateway alias mapped to your actual provider model; keep the provider’s exact ID in **Provider model**. If Office reports “Enter a Claude model name or a gateway alias that references one”, check this alias.
 
 Keep the client running while using Office. Closing its window keeps the connection alive; quitting stops it. Reopen from the Dock or tray. After relaunch, click **Connect gateway**; a saved provider key does not need to be re-entered.
+
+**Lightweight mode** releases the main window and web view while keeping the gateway and tray running. Enable it from the tray menu or **Advanced settings**. Open from the tray or launch the app again to rebuild the window. Unsaved changes require a choice before entry; the mode lasts for the current session only. [Behavior and validation](docs/LIGHTWEIGHT_MODE.md).
 
 For the official DeepSeek API, native function tool definitions are normalized and tool conversations use non-thinking mode with Anthropic Messages or OpenAI Chat Completions. This avoids rejected Office tool definitions, forced tool calls and missing thinking history on tool results. Plain text requests and other providers keep their original behavior. See [DeepSeek compatibility and validation](docs/DEEPSEEK.md).
 
