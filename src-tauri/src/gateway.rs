@@ -5,7 +5,7 @@ use crate::{
 use axum::{
     body::{to_bytes, Body},
     extract::{Request, State},
-    http::{header, HeaderMap, HeaderValue, Method, StatusCode},
+    http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri},
     response::{IntoResponse, Response},
     routing::any,
     Json, Router,
@@ -344,7 +344,7 @@ impl GatewayRouter {
 async fn handle(State(router): State<Arc<GatewayRouter>>, request: Request) -> Response {
     let headers = request.headers().clone();
     let result=async {
-        validate_local(&router.config,&headers)?;
+        validate_local(&router.config,request.uri(),&headers)?;
         if request.method()==Method::OPTIONS {return preflight(&headers);}
         if request.method()==Method::GET && request.uri().path()=="/health" {return Ok(Json(json!({"status":"ok","version":env!("CARGO_PKG_VERSION"),"runtime":"native-rust"})).into_response());}
         authorize(&router.token,&headers)?;
@@ -395,18 +395,27 @@ async fn handle(State(router): State<Arc<GatewayRouter>>, request: Request) -> R
 fn model_value(config: &GatewayConfig) -> Value {
     json!({"id":config.public_model,"type":"model","display_name":config.display_name,"created_at":"2026-10-26T00:00:00Z"})
 }
-fn validate_local(config: &GatewayConfig, headers: &HeaderMap) -> Result<()> {
+fn validate_local(config: &GatewayConfig, uri: &Uri, headers: &HeaderMap) -> Result<()> {
+    // HTTP/2 carries :authority in the URI; Hyper does not synthesize Host.
+    // Check both when supplied so an absolute URI cannot bypass Host validation.
+    let authority = uri
+        .authority()
+        .map(|value| value.as_str().to_ascii_lowercase());
     let host = headers
         .get(header::HOST)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    if ![
+        .map(|value| value.to_str().unwrap_or("").to_ascii_lowercase());
+    let allowed = [
         format!("localhost:{}", config.port),
         format!("127.0.0.1:{}", config.port),
         format!("[::1]:{}", config.port),
-    ]
-    .contains(&host)
+    ];
+    if headers.get_all(header::HOST).iter().count() > 1
+        || (authority.is_none() && host.is_none())
+        || authority
+            .iter()
+            .chain(host.iter())
+            .any(|value| !allowed.contains(value))
+        || matches!((&authority, &host), (Some(a), Some(h)) if a != h)
     {
         return Err(GatewayError::new(
             403,

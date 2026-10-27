@@ -63,4 +63,5 @@ strip = "symbols"
 security-framework = "3"
 
 [dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["http2"] }
 tokio-stream = "0.1"

@@ -328,7 +328,7 @@ async fn serve(app: Router, pem: &str, key: &str) -> (u16, axum_server::Handle) 
     (port, handle)
 }
 #[tokio::test]
-async fn https_end_to_end_all_protocols_stream_before_completion_and_cache_only_probes() {
+async fn https_http2_end_to_end_all_protocols_stream_before_completion_and_cache_only_probes() {
     for kind in [
         UpstreamProtocol::Anthropic,
         UpstreamProtocol::OpenaiChat,
@@ -349,6 +349,8 @@ async fn https_end_to_end_all_protocols_stream_before_completion_and_cache_only_
         )
         .await;
         let client = reqwest::Client::builder()
+            .http2_prior_knowledge()
+            .no_proxy()
             .add_root_certificate(reqwest::Certificate::from_der(&der).unwrap())
             .timeout(Duration::from_secs(5))
             .build()
@@ -390,15 +392,16 @@ async fn https_end_to_end_all_protocols_stream_before_completion_and_cache_only_
         });
         gateway_handle.listening().await.unwrap();
         let url = format!("https://localhost:{port}");
-        let models: Value = client
+        let response = client
             .get(format!("{url}/v1/models"))
             .header("x-api-key", "gateway-secret")
             .send()
             .await
             .unwrap()
-            .json()
-            .await
+            .error_for_status()
             .unwrap();
+        assert_eq!(response.version(), axum::http::Version::HTTP_2);
+        let models: Value = response.json().await.unwrap();
         assert_eq!(models["data"][0]["id"], "claude-office-custom");
         let probe = json!({"model":"claude-office-custom","max_tokens":1,"messages":[{"role":"user","content":"x"}]});
         let response = client
@@ -562,4 +565,83 @@ async fn certificate_identity_is_not_port_scoped_and_does_not_trust_an_unrelated
     a.shutdown();
     b.shutdown();
     c.shutdown();
+}
+
+#[tokio::test]
+async fn http2_authority_allows_office_preflight_and_rejects_foreign_or_conflicting_hosts() {
+    let app = GatewayRouter::new(config(), "gateway-secret".into(), "provider-secret".into())
+        .unwrap()
+        .app();
+    for (authority, host, status) in [
+        ("localhost:15724", None, StatusCode::OK),
+        ("127.0.0.1:15724", None, StatusCode::OK),
+        ("[::1]:15724", None, StatusCode::OK),
+        ("evil.example:15724", None, StatusCode::FORBIDDEN),
+        ("localhost:15725", None, StatusCode::FORBIDDEN),
+        (
+            "localhost:15724",
+            Some("evil.example:15724"),
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "evil.example:15724",
+            Some("localhost:15724"),
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "localhost:15724",
+            Some("127.0.0.1:15724"),
+            StatusCode::FORBIDDEN,
+        ),
+    ] {
+        let mut request = Request::builder()
+            .version(axum::http::Version::HTTP_2)
+            .uri(format!("https://{authority}/health"));
+        if let Some(host) = host {
+            request = request.header(header::HOST, host);
+        }
+        let response = app
+            .clone()
+            .oneshot(request.body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(
+            response.status(),
+            status,
+            "authority={authority}, host={host:?}"
+        );
+    }
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .version(axum::http::Version::HTTP_2)
+                .uri("https://localhost:15724/v1/models")
+                .method("OPTIONS")
+                .header(header::ORIGIN, "https://pivot.claude.ai")
+                .header("access-control-request-method", "GET")
+                .header(
+                    "access-control-request-headers",
+                    "x-api-key,anthropic-version",
+                )
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    assert_eq!(
+        response.headers()["access-control-allow-origin"],
+        "https://pivot.claude.ai"
+    );
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
