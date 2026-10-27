@@ -117,32 +117,39 @@ function App() {
     state.certificate.trusted &&
     draft.base_url.trim().length > 0 &&
     draft.upstream_model.trim().length > 0 &&
-    upstreamKey.trim().length > 0 &&
+    (state.has_upstream_key || upstreamKey.trim().length > 0) &&
     !busy;
   const statusTone = runtime.phase === "ready" ? "positive" : runtime.phase === "failed" ? "danger" : "neutral";
 
-  async function run(label: string, action: () => Promise<AppState>) {
+  async function run(label: string, action: () => Promise<AppState>): Promise<AppState | null> {
     setBusy(label);
     setNotice(null);
     try {
       const next = await action();
       setState(next);
       setDraft(next.config);
-      if (label !== "loading") setNotice({ kind: "success", text: successText(label) });
+      if (next.runtime.phase === "failed") {
+        setNotice({ kind: "error", text: next.runtime.error ?? "The gateway could not complete the operation." });
+      } else if (label !== "loading") {
+        setNotice({ kind: "success", text: successText(label) });
+      }
+      return next;
     } catch (error) {
       setNotice({ kind: "error", text: error instanceof Error ? error.message : String(error) });
+      return null;
     } finally {
       setBusy(null);
     }
   }
 
-  async function save() {
-    await run("saving", () => saveSettings({ config: draft, upstream_key: upstreamKey }));
-    setUpstreamKey("");
+  async function save(): Promise<boolean> {
+    const next = await run("saving", () => saveSettings({ config: draft, upstream_key: upstreamKey }));
+    if (next) setUpstreamKey("");
+    return next !== null;
   }
 
   async function connect() {
-    if (hasDraftChanges) await save();
+    if (hasDraftChanges && !(await save())) return;
     await run("connecting", connectGateway);
   }
 
@@ -194,7 +201,7 @@ function App() {
               setDraft={setDraft}
               setUpstreamKey={setUpstreamKey}
               busy={busyLabel}
-              notice={notice}
+              notice={notice ?? (state.runtime.error ? { kind: "error", text: state.runtime.error } : null)}
               canConnect={canConnect}
               advancedOpen={advancedOpen}
               setAdvancedOpen={setAdvancedOpen}
@@ -228,8 +235,8 @@ function ConnectionPage(props: {
   setAdvancedOpen: (value: boolean) => void;
   onInstall: () => void;
   onDelete: () => void;
-  onSave: () => Promise<void>;
-  onConnect: () => Promise<void>;
+  onSave: () => Promise<unknown>;
+  onConnect: () => Promise<unknown>;
   onStop: () => void;
   onRecheck: () => void;
   onNavigateGuide: () => void;
@@ -293,7 +300,7 @@ function ConnectionPage(props: {
   </div>;
 }
 
-function SettingsPage({ state, draft, setDraft, onSave, busy }: { state: AppState; draft: GatewayConfig; setDraft: (config: GatewayConfig) => void; onSave: () => Promise<void>; busy: boolean }) {
+function SettingsPage({ state, draft, setDraft, onSave, busy }: { state: AppState; draft: GatewayConfig; setDraft: (config: GatewayConfig) => void; onSave: () => Promise<unknown>; busy: boolean }) {
   return <div className="content-wrap narrow"><div className="page-intro compact"><div><p className="eyebrow">Fine tune the bridge</p><h1>Advanced settings</h1><p className="lede">These values affect the local listener and how requests are authenticated upstream.</p></div></div><section className="card settings-card"><div className="settings-row"><div><strong>Upstream authentication</strong><p>Choose which header the provider expects.</p></div><select value={draft.auth_header} onChange={e => setDraft({ ...draft, auth_header: e.target.value as GatewayConfig["auth_header"] })}><option value="authorization">Authorization: Bearer</option><option value="x-api-key">x-api-key</option></select></div><div className="settings-row"><div><strong>OpenAI token field</strong><p>Some OpenAI-compatible providers still require the legacy field.</p></div><select value={draft.max_tokens_field} onChange={e => setDraft({ ...draft, max_tokens_field: e.target.value as GatewayConfig["max_tokens_field"] })}><option value="max_completion_tokens">max_completion_tokens</option><option value="max_tokens">max_tokens</option></select></div><div className="settings-row"><div><strong>Allowed Office origin</strong><p>Only this origin is accepted by the local CORS policy.</p></div><input className="settings-input" value={draft.allowed_origins[0] ?? ""} onChange={e => setDraft({ ...draft, allowed_origins: [e.target.value] })} /></div><div className="settings-row"><div><strong>Certificate identity</strong><p>{state.certificate.subject}</p></div><span className={state.certificate.trusted ? "check-label" : "muted-inline"}>{state.certificate.trusted ? <><Check size={15} /> Trusted</> : "Not trusted"}</span></div></section><div className="settings-actions"><button className="button primary" onClick={() => void onSave()} disabled={busy}>{busy ? "Saving…" : "Save advanced settings"}</button></div></div>;
 }
 
