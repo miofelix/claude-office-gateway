@@ -40,6 +40,7 @@ export interface AppState {
   certificate: CertificateState;
   runtime: RuntimeState;
   platform: "macos" | "windows";
+  test_mode?: boolean;
 }
 
 export async function appState(): Promise<AppState> {

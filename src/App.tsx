@@ -25,6 +25,9 @@ export default function App() {
         <div className="brand" data-tauri-drag-region>
           <img src={logo} alt="" />
           <span>Claude Office Gateway</span>
+          {gateway.state.test_mode && (
+            <span className="test-mode-label">{t("Test session")}</span>
+          )}
         </div>
         <div className="header-actions">
           <select
@@ -83,7 +86,7 @@ export default function App() {
         <h2 id="certificate-dialog-title">
           {t(
             confirm === "delete"
-              ? "Remove the local certificate?"
+              ? "Uninstall the local certificate?"
               : "Trust localhost for Office?",
           )}
         </h2>
@@ -91,9 +94,18 @@ export default function App() {
           {t(
             confirm === "delete"
               ? "This stops the gateway, removes only this app’s certificate from your user certificate store, and deletes its local identity files. Your provider settings and keys are kept."
-              : "This adds a one-year HTTPS leaf certificate for localhost to your current user certificate store. It cannot issue other certificates. Complete any password confirmation in the system dialog.",
+              : "This installs this app’s one-year localhost certificate for your current user. Certificate checks match hostnames, not ports. Your system may ask you to confirm the trust change.",
           )}
         </p>
+        {confirm === "install" && (
+          <p className="certificate-platform-note">
+            {t(
+              gateway.state.platform === "macos"
+                ? "macOS: user-level SSL trust for localhost in your login Keychain."
+                : "Windows: this certificate is added to Current User / Trusted Root Certification Authorities.",
+            )}
+          </p>
+        )}
         <div className="dialog-actions">
           <button
             autoFocus
@@ -115,7 +127,7 @@ export default function App() {
           >
             {t(
               confirm === "delete"
-                ? "Remove certificate"
+                ? "Uninstall certificate"
                 : "Install certificate",
             )}
           </button>

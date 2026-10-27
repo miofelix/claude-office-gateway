@@ -15,6 +15,70 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  "macOS: user-level SSL trust for localhost in your login Keychain.":
+    "macOS：在当前用户的登录钥匙串中，为此证书设置 SSL／localhost 信任。",
+  "Windows: this certificate is added to Current User / Trusted Root Certification Authorities.":
+    "Windows：将此证书加入「当前用户／受信任的根证书颁发机构」。",
+
+  "Connect your model to Office": "把你的模型接入 Office",
+  "Trust this device, connect a provider, then add the gateway in Office.":
+    "安装本地证书 → 连接模型供应商 → 在 Office 中填入网关信息。",
+  "Local HTTPS certificate": "本地 HTTPS 证书",
+  "Lets the Office add-in reach your local gateway securely.":
+    "让 Office 加载项安全访问本机网关。",
+  "Not yet trusted": "尚未信任",
+  "Not installed": "未安装",
+  "Local gateway": "网关地址",
+  "Current user": "当前用户",
+  "What is trusted?": "证书信任范围",
+  "Certificates identify hosts, not ports.": "证书校验主机名，不区分端口。",
+  "The certificate matches localhost and loopback addresses. It cannot be restricted to one port. Trusting this certificate does not automatically trust unrelated localhost certificates.":
+    "证书匹配 localhost 与回环地址，无法限定单个端口。信任本应用的证书，不会让其他无关的 localhost 证书自动受信任。",
+  "The gateway separately checks the local port, allowed Office origin, and gateway token.":
+    "网关服务另外校验本地端口、Office 来源和网关令牌。",
+  "Check certificate": "检查证书状态",
+  Check: "检查",
+  "Uninstall certificate": "卸载证书",
+  "Uninstall the local certificate?": "卸载本地证书？",
+  "Use the API URL, key, and model from your provider.":
+    "填写供应商提供的 API 地址、密钥和模型 ID。",
+  "Saved key · leave blank to keep": "已保存密钥，留空即可沿用",
+  "Provider verified": "供应商验证通过",
+  "Connect saves your settings and checks the provider.":
+    "连接前自动保存并检测供应商。",
+  Save: "保存",
+  "Save and connect": "保存并连接",
+  "Changes use the Save button above. Stop the gateway before editing.":
+    "修改后点击上方「保存」。运行时请先停止网关再编辑。",
+  "Test session": "隔离测试",
+  "Test session: keys are kept in memory and are not saved to your credential vault.":
+    "隔离测试模式：密钥仅保存在当前会话，不写入系统凭据库。",
+  "Keys stay in your system credential vault. Document contents are not saved.":
+    "密钥保存在系统凭据库，文档内容不落盘。",
+  "Set up the Office add-in": "连接 Office 加载项",
+  "Choose an Office app, then enter the connection details.":
+    "先安装对应加载项，再填写下方连接信息。",
+  "Install the official Claude add-in": "安装 Claude 官方加载项",
+  Install: "安装",
+  "In the Claude add-in, choose Gateway": "打开 Claude 加载项，选择 Gateway",
+  "Open the add-in in Office, choose the gateway sign-in option, and use these settings:":
+    "在加载项的登录方式中选择 Gateway，然后按以下选项设置：",
+  "API format": "API 格式",
+  Authentication: "认证方式",
+  "Paste these three values": "将这三个参数粘贴到加载项",
+  Ready: "已就绪",
+  Copy: "复制",
+  "The gateway token is different from your provider key. Paste it without Bearer.":
+    "网关令牌与供应商密钥不同。粘贴时无需添加 Bearer 前缀。",
+  "Connect the provider first to enable copying. The gateway token is separate from your provider key.":
+    "连接供应商后即可复制。网关令牌与供应商密钥不同，无需添加 Bearer 前缀。",
+  "Keep this app running while using Office.":
+    "使用 Office 期间保持本应用运行。",
+  "Provider checks may incur a small charge.":
+    "供应商连接检测可能产生少量费用。",
+  "This installs this app’s one-year localhost certificate for your current user. Certificate checks match hostnames, not ports. Your system may ask you to confirm the trust change.":
+    "将本应用有效期一年的 localhost 证书安装到当前用户。证书按主机名校验，不限制端口。系统可能要求你确认信任变更。",
+
   "Open GitHub repository": "打开 GitHub 仓库",
   "Current user · localhost only": "当前用户 · 仅限本机",
   "Model provider": "模型供应商",
@@ -41,8 +105,6 @@ const zh: Record<string, string> = {
   "Trust localhost for Office?": "为 Office 信任本地 HTTPS？",
   "This stops the gateway, removes only this app’s certificate from your user certificate store, and deletes its local identity files. Your provider settings and keys are kept.":
     "将停止网关，从当前用户的证书存储中移除本应用的证书，并删除本地证书身份文件。供应商配置与密钥会保留。",
-  "This adds a one-year HTTPS leaf certificate for localhost to your current user certificate store. It cannot issue other certificates. Complete any password confirmation in the system dialog.":
-    "将有效期为一年的 localhost HTTPS 终端证书添加至当前用户的证书存储。该证书不能签发其他证书。请仅在系统对话框中输入密码。",
   Cancel: "取消",
   "Remove certificate": "移除证书",
   "Install certificate": "安装证书",

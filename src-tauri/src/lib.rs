@@ -48,6 +48,7 @@ struct ClientState {
     certificate: CertificateState,
     runtime: runtime::Snapshot,
     platform: &'static str,
+    test_mode: bool,
 }
 #[derive(Deserialize)]
 struct SaveSettingsInput {
@@ -86,6 +87,7 @@ fn snapshot_sync(app: &AppState) -> Result<ClientState, String> {
     app.certificate_trusted
         .store(trusted, std::sync::atomic::Ordering::Relaxed);
     Ok(ClientState {
+        test_mode: isolated(),
         config,
         has_upstream_key: vault.key.is_some(),
         gateway_token: vault.token,

@@ -5,8 +5,8 @@
       {
         "titleBarStyle": "Visible",
         "decorations": true,
-        "width": 960,
-        "height": 700,
+        "width": 1060,
+        "height": 800,
         "label": "main",
         "title": "Claude Office Gateway",
         "minWidth": 780,

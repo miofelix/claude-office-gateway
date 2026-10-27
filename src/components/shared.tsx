@@ -34,21 +34,18 @@ export function CopyRow({
         {t(label)}
       </span>
       <div>
-        <code className="copy-value">{value}</code>
+        <code className="copy-value" title={value}>
+          {value}
+        </code>
         <button
-          className="icon-button"
+          className="copy-button"
           onClick={() => void copy()}
           disabled={disabled}
           aria-label={"Copy " + label}
-          title={
-            copied
-              ? t("Copied")
-              : disabled
-                ? t("Connect first")
-                : "Copy " + label
-          }
+          title={disabled ? t("Connect first") : "Copy " + label}
         >
           {copied ? <Check size={14} /> : <Clipboard size={14} />}
+          <span>{t(copied ? "Copied" : "Copy")}</span>
         </button>
         <span className="sr-only" role="status">
           {copied ? t("Copied") : ""}
