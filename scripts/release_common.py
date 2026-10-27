@@ -7,7 +7,6 @@ import re
 VERSION_PATTERN = re.compile(r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[A-Za-z-][0-9A-Za-z-]*))*))?$')
 PLATFORMS = {
     'aarch64-apple-darwin': ('macos-aarch64', 'darwin-aarch64'),
-    'x86_64-apple-darwin': ('macos-x86_64', 'darwin-x86_64'),
     'x86_64-pc-windows-msvc': ('windows-x86_64', 'windows-x86_64'),
 }
 
@@ -61,7 +60,7 @@ def build_manifest(version, repo, records, notes, published_at):
     parse_version(version)
     expected = {item[0] for item in PLATFORMS.values()}
     if {record['platform'] for record in records} != expected or len(records) != len(expected):
-        raise ValueError('A release requires exactly macOS ARM64, macOS Intel and Windows x64')
+        raise ValueError('A release requires exactly macOS ARM64 and Windows x64')
     platforms = {}
     for record in records:
         if record['version'] != version:
@@ -73,7 +72,7 @@ def build_manifest(version, repo, records, notes, published_at):
             if Path(filename).name != filename:
                 raise ValueError('Updater asset must be a basename')
             platforms[target] = {'url': f'https://github.com/{repo}/releases/download/v{version}/{filename}', 'signature': entry['signature'].strip()}
-    required = {'darwin-aarch64', 'darwin-x86_64', 'windows-x86_64', 'windows-x86_64-nsis', 'windows-x86_64-msi'}
+    required = {'darwin-aarch64', 'windows-x86_64', 'windows-x86_64-nsis', 'windows-x86_64-msi'}
     if set(platforms) != required:
         raise ValueError('Missing signed updater installer variants')
     return {'version': version, 'notes': notes, 'pub_date': published_at, 'platforms': platforms}

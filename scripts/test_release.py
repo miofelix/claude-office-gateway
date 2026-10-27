@@ -1,5 +1,5 @@
 import unittest
-from release_common import compare_versions, msi_version, build_manifest
+from release_common import PLATFORMS, compare_versions, msi_version, build_manifest
 class Releases(unittest.TestCase):
     def test_semver_order(self):
         self.assertLess(compare_versions('0.2.0-beta.2', '0.2.0-beta.10'), 0)
@@ -16,13 +16,28 @@ class Releases(unittest.TestCase):
             with self.assertRaises(ValueError):msi_version(version)
     def test_manifest_requires_all_platforms_and_signatures(self):
         with self.assertRaises(ValueError):build_manifest('0.2.0-beta.1','miofelix/claude-office-gateway',[],'','2026-10-27T00:00:00Z')
-    def test_manifest_preserves_installer_variants(self):
-        records=[{'version':'0.2.0-beta.1','platform':platform,'updates':updates} for platform,updates in [
+    def supported_records(self):
+        return [{'version':'0.2.0-beta.1','platform':platform,'updates':updates} for platform,updates in [
             ('macos-aarch64',{'darwin-aarch64':{'file':'arm.app.tar.gz','signature':'signed-arm'}}),
-            ('macos-x86_64',{'darwin-x86_64':{'file':'intel.app.tar.gz','signature':'signed-intel'}}),
             ('windows-x86_64',{key:{'file':file,'signature':'signed-win'} for key,file in [('windows-x86_64','setup.exe'),('windows-x86_64-nsis','setup.exe'),('windows-x86_64-msi','setup.msi')]})]]
+    def test_official_targets_exclude_macos_intel(self):
+        self.assertEqual(set(PLATFORMS), {'aarch64-apple-darwin', 'x86_64-pc-windows-msvc'})
+    def test_manifest_preserves_installer_variants(self):
+        records=self.supported_records()
         result=build_manifest('0.2.0-beta.1','miofelix/claude-office-gateway',records,'notes','2026-10-27T00:00:00Z')
+        self.assertEqual(set(result['platforms']), {'darwin-aarch64', 'windows-x86_64', 'windows-x86_64-nsis', 'windows-x86_64-msi'})
         self.assertTrue(result['platforms']['windows-x86_64-msi']['url'].endswith('/setup.msi'))
         records[0]['updates']['darwin-aarch64']['signature']=''
+        with self.assertRaises(ValueError):build_manifest('0.2.0-beta.1','miofelix/claude-office-gateway',records,'','2026-10-27T00:00:00Z')
+    def test_manifest_rejects_retired_intel_assets(self):
+        records=self.supported_records()
+        records.append({'version':'0.2.0-beta.1','platform':'macos-x86_64','updates':{'darwin-x86_64':{'file':'intel.app.tar.gz','signature':'signed-intel'}}})
+        with self.assertRaises(ValueError):build_manifest('0.2.0-beta.1','miofelix/claude-office-gateway',records,'','2026-10-27T00:00:00Z')
+    def test_manifest_still_requires_both_supported_platforms(self):
+        for records in [self.supported_records()[:1], self.supported_records()[1:]]:
+            with self.assertRaises(ValueError):build_manifest('0.2.0-beta.1','miofelix/claude-office-gateway',records,'','2026-10-27T00:00:00Z')
+    def test_manifest_still_requires_both_windows_installers(self):
+        records=self.supported_records()
+        del records[1]['updates']['windows-x86_64-msi']
         with self.assertRaises(ValueError):build_manifest('0.2.0-beta.1','miofelix/claude-office-gateway',records,'','2026-10-27T00:00:00Z')
 if __name__=='__main__':unittest.main()

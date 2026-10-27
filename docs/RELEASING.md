@@ -1,6 +1,6 @@
 # 发布与应用更新
 
-版本：`0.2.0-beta.2`。仓库：<https://github.com/miofelix/claude-office-gateway>。
+版本：`0.2.0-beta.3`。仓库：<https://github.com/miofelix/claude-office-gateway>。
 
 ## 版本与通道
 
@@ -13,7 +13,7 @@ Windows MSI 使用数值映射，避免 WiX 不接受 `beta.1` 和 Windows Insta
 - 应用 `major.minor.patch-beta.N` → MSI `major.minor.(patch*256+N)`。
 - `rc.N` 的槽位为 `127+N`，正式版为 `255`。
 - `major`、`minor`、`patch` 最大 255，N 为 1..127。
-- 本次 `0.2.0-beta.2` 的 MSI ProductVersion 为 `0.2.2`；应用和更新仍显示完整的 `0.2.0-beta.2`。
+- 本次 `0.2.0-beta.3` 的 MSI ProductVersion 为 `0.2.3`；应用和更新仍显示完整的 `0.2.0-beta.3`。
 
 `check-release.py` 检查 npm、Cargo、Tauri 版本一致以及 MSI 映射。选定 updater `2.10.0`，与当前 Tauri / Rust 最低版本保持兼容；已核对它支持 Windows 安装器专用平台键。
 
@@ -21,16 +21,18 @@ Windows MSI 使用数值映射，避免 WiX 不接受 `beta.1` 和 Windows Insta
 
 1. 修改各版本文件、Windows MSI 数值版本，以及 `docs/releases/v<version>.md`。
 2. 提交并推送 main。Desktop checks 在 macOS / Windows 原生执行检查。
-3. 运行 **Publish desktop release** 的 workflow_dispatch，`version` 填完整版本。三个平台全部完成检查、原生构建、更新签名验证后，publish 作业才创建草稿 Release、上传资产并发布；Git 标签指向该次构建的精确提交。
+3. 运行 **Publish desktop release** 的 workflow_dispatch，`version` 填完整版本。两个平台全部完成检查、原生构建、更新签名验证后，publish 作业才创建草稿 Release、上传资产并发布；Git 标签指向该次构建的精确提交。
 4. 发布器再次校验资产 SHA-256 和更新签名，然后推进独立的 `updates` 分支。feed 推进失败可重跑 publish 作业；它验证已发布版本与现有资产相同后恢复操作，不替换已发布资产。
 
-构建使用 `macos-15`（ARM64）、`macos-15-intel`、`windows-2022`。产物名含版本和架构，macOS 归档只重命名，不重新打包。Windows 同时发布 NSIS / MSI，各有独立更新地址及签名。`latest.json` 属于具体版本，beta 不依赖 GitHub 的 latest-release 规则。
+构建使用 `macos-15`（ARM64）和 `windows-2022`。产物名含版本和架构，macOS 归档只重命名，不重新打包。Windows 同时发布 NSIS / MSI，各有独立更新地址及签名。`latest.json` 属于具体版本，beta 不依赖 GitHub 的 latest-release 规则。
 
 本地正式构建：
 
 ```bash
 python3 scripts/build-signed-release.py --target aarch64-apple-darwin
 ```
+
+从 beta.3 起不再构建或发布 macOS Intel 产物，更新清单也不再包含 `darwin-x86_64`。旧版 Intel 安装包保留在历史 Release 中。
 
 普通本地构建使用 `scripts/build-macos.sh` / `build-windows.ps1`，通过 `tauri.local.conf.json` 关闭更新产物生成，无需发布私钥。不能将这种产物当作官方更新包上传。
 

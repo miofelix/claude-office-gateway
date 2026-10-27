@@ -6,7 +6,7 @@
 
 ## 测试版下载与更新
 
-当前版本 **0.2.0-beta.2**。[下载测试版](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.2)：macOS 提供 Apple Silicon / Intel DMG；Windows x64 提供 EXE / MSI。
+当前版本 **0.2.0-beta.3**。[下载测试版](https://github.com/miofelix/claude-office-gateway/releases/tag/v0.2.0-beta.3)：macOS 提供 Apple Silicon DMG；Windows x64 提供 EXE / MSI。从此版本起不再构建 macOS Intel 版本。
 
 点击应用标题旁的版本号可检查更新、查看更新说明和下载进度。默认启动时检查更新，可关闭；安装由你手动触发，验证签名后重启应用。测试版订阅 beta 通道，正式版订阅 stable 通道；beta 通道也接收更高版本的正式版。
 
