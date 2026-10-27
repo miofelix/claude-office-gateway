@@ -1,0 +1,11 @@
+node_modules
+dist
+.vite
+.DS_Store
+.idea
+.vscode
+src-tauri/target
+src-tauri/gen
+src-tauri/icons/generated
+.env*
+

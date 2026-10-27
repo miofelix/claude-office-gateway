@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Claude Office Gateway",
+  "version": "0.1.0",
+  "identifier": "com.miofelix.office-gateway",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm run dev:renderer",
+    "beforeBuildCommand": "pnpm run build:renderer"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Claude Office Gateway",
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": { "x": 14, "y": 16 },
+        "width": 1180,
+        "height": 800,
+        "minWidth": 820,
+        "minHeight": 620,
+        "visible": true,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: asset:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost https: http:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app", "nsis", "msi"],
+    "icon": ["icons/icon.png", "icons/icon.ico", "icons/icon.icns"],
+    "macOS": { "minimumSystemVersion": "12.0" },
+    "windows": { "webviewInstallMode": { "type": "embedBootstrapper" } }
+  }
+}
+
