@@ -185,3 +185,37 @@ fn powershell(script: &str) -> std::io::Result<std::process::Output> {
         .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .output()
 }
+
+#[cfg(all(test, target_os = "windows"))]
+mod windows_tests {
+    use super::*;
+
+    #[test]
+    fn repeated_certificate_checks_do_not_allocate_a_console() {
+        // Exercise the exact PowerShell launcher used by trusted(), without
+        // touching the user's certificate store. A nonzero HWND is the flash.
+        let script = r#"$ErrorActionPreference='Stop'; Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CertificateConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; [CertificateConsoleProbe]::GetConsoleWindow().ToInt64()"#;
+        for _ in 0..3 {
+            let output = powershell(script).expect("Start certificate-check PowerShell");
+            assert!(
+                output.status.success(),
+                "Console probe must run successfully"
+            );
+            assert_eq!(
+                String::from_utf8(output.stdout).unwrap().trim(),
+                "0",
+                "Background certificate checks must not create a console window"
+            );
+        }
+    }
+
+    #[test]
+    fn background_certificate_commands_preserve_errors_and_exit_status() {
+        let output =
+            powershell("[Console]::Error.WriteLine('certificate-test-error'); exit 7").unwrap();
+        assert_eq!(output.status.code(), Some(7));
+        assert!(String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("certificate-test-error"));
+    }
+}
