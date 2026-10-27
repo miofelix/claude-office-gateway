@@ -1,0 +1,5 @@
+# Keep source and formatting checks identical on macOS and Windows.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
