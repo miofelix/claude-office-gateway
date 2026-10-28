@@ -1,6 +1,6 @@
 use crate::{
     config::{GatewayConfig, UpstreamProtocol},
-    protocol, providers, stream,
+    protocol, providers, stream, transport, upstream_errors,
 };
 use axum::{
     body::{to_bytes, Body},
@@ -21,16 +21,21 @@ use std::{
     time::{Duration, Instant},
 };
 use thiserror::Error;
-use tokio::sync::{Mutex, Semaphore};
+use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
 
 type Result<T> = std::result::Result<T, GatewayError>;
 const RESPONSE_LIMIT: usize = 32 * 1024 * 1024;
+const STREAM_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(10);
 #[derive(Debug, Error, Clone)]
 #[error("{message}")]
 pub struct GatewayError {
     pub status: u16,
     pub kind: String,
     pub message: String,
+    request_id: Option<String>,
+    response_headers: Option<Box<HeaderMap>>,
+    pub provider_category: Option<&'static str>,
+    pub provider_fingerprint: Option<Box<str>>,
 }
 impl GatewayError {
     pub fn new(status: u16, kind: &str, message: impl Into<String>) -> Self {
@@ -38,6 +43,10 @@ impl GatewayError {
             status,
             kind: kind.into(),
             message: message.into(),
+            request_id: None,
+            response_headers: None,
+            provider_category: None,
+            provider_fingerprint: None,
         }
     }
     pub fn bad_request(message: impl Into<String>) -> Self {
@@ -47,30 +56,42 @@ impl GatewayError {
         Self::new(502, "api_error", message)
     }
     pub fn payload(&self) -> Value {
-        json!({"type":"error","error":{"type":self.kind,"message":self.message}})
+        let message = match &self.request_id {
+            Some(id) => format!("{} (Gateway request ID: {id})", self.message),
+            None => self.message.clone(),
+        };
+        let mut payload = json!({"type":"error","error":{"type":self.kind,"message":message}});
+        if let Some(request_id) = &self.request_id {
+            payload["request_id"] = json!(request_id);
+        }
+        payload
+    }
+    pub fn with_request_id(mut self, request_id: &str) -> Self {
+        self.request_id = Some(request_id.into());
+        self
+    }
+    pub fn with_provider_category(mut self, category: &'static str) -> Self {
+        self.provider_category = Some(category);
+        self
+    }
+    fn with_response_headers(mut self, headers: HeaderMap) -> Self {
+        self.response_headers = Some(Box::new(headers));
+        self
     }
 }
 impl IntoResponse for GatewayError {
     fn into_response(self) -> Response {
-        (
+        let mut response = (
             StatusCode::from_u16(self.status).unwrap_or(StatusCode::BAD_GATEWAY),
             Json(self.payload()),
         )
-            .into_response()
+            .into_response();
+        if let Some(headers) = self.response_headers {
+            response.headers_mut().extend(*headers);
+        }
+        response
     }
 }
-fn network_error(error: reqwest::Error) -> GatewayError {
-    if error.is_timeout() {
-        GatewayError::new(
-            504,
-            "api_error",
-            "The provider timed out. Check the network or increase the provider timeout.",
-        )
-    } else {
-        GatewayError::upstream("Could not reach the provider or its response was interrupted. Check the API URL and network.")
-    }
-}
-
 #[derive(Clone)]
 pub struct GatewayRouter {
     config: GatewayConfig,
@@ -83,11 +104,16 @@ pub struct GatewayRouter {
 impl GatewayRouter {
     pub fn new(config: GatewayConfig, token: String, key: String) -> anyhow::Result<Self> {
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-        let client = Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(config.timeout_seconds))
-            .build()?;
+        let client = Self::client_builder(&config).build()?;
         Self::with_client(config, token, key, client)
+    }
+    pub(crate) fn client_builder(config: &GatewayConfig) -> reqwest::ClientBuilder {
+        Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .connect_timeout(Duration::from_secs(config.timeout_seconds.min(30)))
+            // A healthy SSE response can run longer than the configured timeout.
+            // Bound each idle read instead of the entire streaming response.
+            .read_timeout(Duration::from_secs(config.timeout_seconds))
     }
     pub fn with_client(
         config: GatewayConfig,
@@ -115,7 +141,15 @@ impl GatewayRouter {
     pub async fn verify_upstream(&self) -> Result<()> {
         for text in ["x", "."] {
             let body = json!({"model":self.config.public_model,"max_tokens":1,"messages":[{"role":"user","content":text}]});
-            self.forward(body, &HeaderMap::new(), false, true).await?;
+            self.forward(
+                body,
+                &HeaderMap::new(),
+                false,
+                true,
+                None,
+                &transport::Trace::new(),
+            )
+            .await?;
         }
         Ok(())
     }
@@ -125,6 +159,8 @@ impl GatewayRouter {
         headers: &HeaderMap,
         count: bool,
         bypass_cache: bool,
+        permit: Option<OwnedSemaphorePermit>,
+        trace: &transport::Trace,
     ) -> Result<Response> {
         if body["model"] != self.config.public_model {
             return Err(GatewayError::new(
@@ -185,8 +221,13 @@ impl GatewayRouter {
             ),
         };
         outgoing["model"] = json!(self.config.upstream_model);
+        let required_tool = providers::required_function(&self.config, &body);
         providers::prepare_request(&self.config, &body, &mut outgoing, count);
         let streaming = !count && body["stream"] == true;
+        let request_bytes = serde_json::to_vec(&outgoing).map(|v| v.len()).unwrap_or(0);
+        let history_turns = body["messages"].as_array().map_or(0, Vec::len);
+        let tool_count = body["tools"].as_array().map_or(0, Vec::len);
+        let output_limit = body["max_tokens"].as_u64().unwrap_or(0);
         let mut request = self
             .client
             .post(self.config.endpoint(resource))
@@ -216,41 +257,45 @@ impl GatewayRouter {
                 request = request.header("anthropic-beta", beta);
             }
         }
-        let upstream = request
-            .json(&outgoing)
-            .send()
-            .await
-            .map_err(network_error)?;
+        let upstream = trace
+            .send(
+                request.json(&outgoing),
+                (!streaming).then_some(Duration::from_secs(self.config.timeout_seconds)),
+            )
+            .await?;
         let status = upstream.status().as_u16();
+        let mut response_headers = HeaderMap::new();
+        for name in ["request-id", "x-request-id", "retry-after"] {
+            if let Some(value) = upstream.headers().get(name) {
+                response_headers.insert(name, value.clone());
+            }
+        }
         if upstream.status().is_redirection() {
             return Err(GatewayError::upstream(
                 "Upstream redirect refused; check API Base URL",
             ));
         }
         if !upstream.status().is_success() {
-            let kind = match status {
-                401 => "authentication_error",
-                403 => "permission_error",
-                429 => "rate_limit_error",
-                _ => "api_error",
-            };
-            let detail = match status {
-                401 => "Your provider rejected the API key. Check its authentication method.",
-                403 => "Your provider denied access to this model or protocol.",
-                429 => "Your provider is rate-limiting requests. Wait and recheck.",
-                _ => "Your provider rejected the request.",
-            };
-            return Err(GatewayError::new(
-                status,
-                kind,
-                format!("{detail} (HTTP {status})"),
-            ));
-        }
-        let mut response_headers = HeaderMap::new();
-        for name in ["request-id", "x-request-id", "retry-after"] {
-            if let Some(value) = upstream.headers().get(name) {
-                response_headers.insert(name, value.clone());
-            }
+            // Error bodies are untrusted and may contain keys or document text.
+            // Read a small, time-bounded JSON body only to select fixed labels.
+            let detail = tokio::time::timeout(Duration::from_secs(2), async {
+                let mut source = upstream.bytes_stream();
+                let mut bytes = Vec::new();
+                while let Some(chunk) = source.next().await {
+                    let chunk = chunk.ok()?;
+                    if bytes.len() + chunk.len() > 16 * 1024 {
+                        return None;
+                    }
+                    bytes.extend_from_slice(&chunk);
+                }
+                serde_json::from_slice::<Value>(&bytes).ok()
+            })
+            .await
+            .ok()
+            .flatten();
+            let error = upstream_errors::http(status, detail.as_ref());
+            log::warn!("Provider HTTP rejected: request_id={}, status={status}, category={}, fingerprint={}, request_bytes={request_bytes}, history_turns={history_turns}, tool_count={tool_count}, output_limit={output_limit}", trace.id, error.provider_category.unwrap_or("unknown"), error.provider_fingerprint.as_deref().unwrap_or("none"));
+            return Err(error.with_response_headers(response_headers));
         }
         if streaming {
             if !upstream
@@ -265,13 +310,38 @@ impl GatewayRouter {
             }
             let kind = self.config.upstream_protocol.clone();
             let model = self.config.public_model.clone();
+            let trace = trace.clone();
+            let stream_request_id = trace.id.clone();
             let output = async_stream::try_stream! {
+                // Keep the concurrency slot until the downstream consumes or drops
+                // the complete SSE response body. Acquiring the permit only in the
+                // request handler releases it before streaming has finished.
+                let _permit = permit;
                 let mut decoder=stream::Decoder::new();
                 let mut adapter=stream::Adapter::new(kind,&model);
+                if let Some(required) = required_tool { adapter.require_tool(required); }
                 for chunk in adapter.start() { yield chunk; }
                 let mut source=upstream.bytes_stream();
-                while let Some(chunk)=source.next().await {
-                    let chunk=chunk.map_err(network_error)?;
+                let mut heartbeat=tokio::time::interval_at(
+                    tokio::time::Instant::now()+STREAM_HEARTBEAT_INTERVAL,
+                    STREAM_HEARTBEAT_INTERVAL,
+                );
+                heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+                loop {
+                    let chunk=tokio::select! {
+                        biased;
+                        chunk=source.next()=>match chunk {
+                            Some(chunk)=>chunk,
+                            None=>break,
+                        },
+                        _=heartbeat.tick()=>{
+                            // Comments and reasoning events can keep the provider
+                            // connection active without producing Office text.
+                            yield stream::event("ping",&json!({"type":"ping"}));
+                            continue;
+                        }
+                    };
+                    let chunk=chunk.map_err(|error|trace.body_error(error,"stream_body"))?;
                     for (name,data) in decoder.push(&chunk)? {
                         for output in adapter.feed(&name,&data)? { yield output; }
                     }
@@ -284,10 +354,15 @@ impl GatewayRouter {
                 }
                 adapter.eof()?;
             };
-            let output = output.map(|result: Result<Bytes>| {
+            let output = output.map(move |result: Result<Bytes>| {
                 Ok::<Bytes, std::io::Error>(match result {
                     Ok(bytes) => bytes,
-                    Err(error) => stream::event("error", &error.payload()),
+                    Err(error) => {
+                        log::warn!("Gateway stream failed: request_id={}, category={}, fingerprint={}, request_bytes={request_bytes}, history_turns={history_turns}, tool_count={tool_count}, output_limit={output_limit}",stream_request_id,error.provider_category.unwrap_or("transport_or_protocol"),error.provider_fingerprint.as_deref().unwrap_or("none"));
+                        stream::event(
+                        "error",
+                        &error.with_request_id(&stream_request_id).payload(),
+                    )},
                 })
             });
             let mut response = Response::new(Body::from_stream(output));
@@ -304,7 +379,7 @@ impl GatewayRouter {
         let mut source = upstream.bytes_stream();
         let mut payload = Vec::new();
         while let Some(chunk) = source.next().await {
-            let chunk = chunk.map_err(network_error)?;
+            let chunk = chunk.map_err(|error| trace.body_error(error, "json_body"))?;
             if payload.len() + chunk.len() > RESPONSE_LIMIT {
                 return Err(GatewayError::upstream("Upstream response exceeds 32 MiB"));
             }
@@ -328,6 +403,9 @@ impl GatewayRouter {
                     protocol::from_responses(&reply, &self.config.public_model)?
                 }
             };
+            if let Some(required) = required_tool.as_deref() {
+                providers::ensure_required_function(&reply, required)?;
+            }
         }
         if let Some(key) = cache_key {
             let mut cache = self.cache.lock().await;
@@ -344,12 +422,13 @@ impl GatewayRouter {
 
 async fn handle(State(router): State<Arc<GatewayRouter>>, request: Request) -> Response {
     let headers = request.headers().clone();
+    let trace = transport::Trace::new();
     let result=async {
         validate_local(&router.config,request.uri(),&headers)?;
         if request.method()==Method::OPTIONS {return preflight(&headers);}
-        if request.method()==Method::GET && request.uri().path()=="/health" {return Ok(Json(json!({"status":"ok","version":env!("CARGO_PKG_VERSION"),"runtime":"native-rust"})).into_response());}
+        if request.method()==Method::GET && request.uri().path()=="/health" {return Ok(Json(json!({"status":"ok","version":env!("CARGO_PKG_VERSION"),"runtime":"native-rust","transport_revision":transport::REVISION})).into_response());}
         authorize(&router.token,&headers)?;
-        let _permit=router.concurrent.clone().try_acquire_owned().map_err(|_|GatewayError::new(429,"rate_limit_error","Too many concurrent gateway requests"))?;
+        let permit=router.concurrent.clone().try_acquire_owned().map_err(|_|GatewayError::new(429,"rate_limit_error","Too many concurrent gateway requests"))?;
         match (request.method().as_str(),request.uri().path()) {
             ("GET","/v1/models")=>{let model=model_value(&router.config);Ok(Json(json!({"data":[model],"has_more":false,"first_id":router.config.public_model,"last_id":router.config.public_model})).into_response())},
             ("GET",path) if path==format!("/v1/models/{}",router.config.public_model)=>Ok(Json(model_value(&router.config)).into_response()),
@@ -357,15 +436,19 @@ async fn handle(State(router): State<Arc<GatewayRouter>>, request: Request) -> R
                 let count=request.uri().path().ends_with("/count_tokens");
                 let body=tokio::time::timeout(Duration::from_secs(30),to_bytes(request.into_body(),router.config.max_request_bytes)).await.map_err(|_|GatewayError::new(408,"invalid_request_error","Request body timed out"))?.map_err(|_|GatewayError::new(413,"request_too_large","Request body exceeds configured limit"))?;
                 let value=serde_json::from_slice(&body).map_err(|_|GatewayError::bad_request("Request body must be a JSON object"))?;
-                router.forward(value,&headers,count,false).await
+                router.forward(value,&headers,count,false,Some(permit),&trace).await
             }
             _=>Err(GatewayError::new(404,"not_found_error","Unknown route or model")),
         }
     }.await;
     let mut response = match result {
         Ok(response) => response,
-        Err(error) => error.into_response(),
+        Err(error) => error.with_request_id(&trace.id).into_response(),
     };
+    response.headers_mut().insert(
+        "x-office-gateway-request-id",
+        HeaderValue::from_str(&trace.id).unwrap(),
+    );
     if let Some(origin) = headers.get(header::ORIGIN).filter(|v| {
         v.to_str()
             .ok()
@@ -380,7 +463,7 @@ async fn handle(State(router): State<Arc<GatewayRouter>>, request: Request) -> R
         response.headers_mut().insert(
             "access-control-expose-headers",
             HeaderValue::from_static(
-                "request-id, x-request-id, retry-after, x-office-gateway-probe-cache",
+                "request-id, x-request-id, retry-after, x-office-gateway-probe-cache, x-office-gateway-request-id",
             ),
         );
     }

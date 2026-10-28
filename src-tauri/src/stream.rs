@@ -1,4 +1,6 @@
-use crate::{config::UpstreamProtocol, gateway::GatewayError, protocol};
+use crate::{
+    config::UpstreamProtocol, gateway::GatewayError, protocol, providers, upstream_errors,
+};
 use bytes::Bytes;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -26,17 +28,21 @@ impl Decoder {
         self.buffer.extend_from_slice(bytes);
         let mut records = Vec::new();
         loop {
-            let boundary = self
+            let lf_boundary = self
                 .buffer
                 .windows(2)
                 .position(|p| p == b"\n\n")
-                .map(|p| (p, 2))
-                .or_else(|| {
-                    self.buffer
-                        .windows(4)
-                        .position(|p| p == b"\r\n\r\n")
-                        .map(|p| (p, 4))
-                });
+                .map(|p| (p, 2));
+            let crlf_boundary = self
+                .buffer
+                .windows(4)
+                .position(|p| p == b"\r\n\r\n")
+                .map(|p| (p, 4));
+            let boundary = match (lf_boundary, crlf_boundary) {
+                (Some(left), Some(right)) => Some(if left.0 <= right.0 { left } else { right }),
+                (Some(boundary), None) | (None, Some(boundary)) => Some(boundary),
+                (None, None) => None,
+            };
             let Some((index, delimiter)) = boundary else {
                 break;
             };
@@ -160,6 +166,7 @@ pub struct Adapter {
     usage: Value,
     delivered: String,
     pub done: bool,
+    required_tool: Option<String>,
 }
 impl Adapter {
     pub fn new(kind: UpstreamProtocol, model: &str) -> Self {
@@ -171,7 +178,11 @@ impl Adapter {
             usage: json!({}),
             delivered: String::new(),
             done: false,
+            required_tool: None,
         }
+    }
+    pub fn require_tool(&mut self, name: String) {
+        self.required_tool = Some(name);
     }
     pub fn start(&self) -> Vec<Bytes> {
         if self.kind == UpstreamProtocol::Anthropic {
@@ -219,9 +230,7 @@ impl Adapter {
         let mut payload: Value = serde_json::from_str(data)
             .map_err(|_| GatewayError::upstream("Invalid upstream SSE JSON"))?;
         if payload.get("error").is_some_and(|v| !v.is_null()) || name == "error" {
-            return Err(GatewayError::upstream(
-                "Upstream returned a streaming error",
-            ));
+            return Err(upstream_errors::streaming(&payload));
         }
         match self.kind {
             UpstreamProtocol::Anthropic => {
@@ -291,12 +300,13 @@ impl Adapter {
                         }
                         Ok(self.output.text(delta))
                     }
-                    "error" | "response.failed" => {
-                        Err(GatewayError::upstream("Upstream Responses stream failed"))
-                    }
+                    "error" | "response.failed" => Err(upstream_errors::streaming(&payload)),
                     "response.completed" | "response.incomplete" => {
                         let converted =
                             protocol::from_responses(&payload["response"], &self.output.model)?;
+                        if let Some(required) = self.required_tool.as_deref() {
+                            providers::ensure_required_function(&converted, required)?;
+                        }
                         let content = converted["content"].as_array().unwrap();
                         let expected = content
                             .iter()

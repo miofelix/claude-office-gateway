@@ -15,6 +15,16 @@ function preferredLanguage(): Language {
 }
 let language: Language = preferredLanguage();
 const zh: Record<string, string> = {
+  "Could not resolve the provider hostname. Check the API URL, DNS, and network.":
+    "无法解析供应商域名，请检查 API 地址、DNS 和网络。",
+  "The provider TLS connection failed. Check the API URL and certificate chain.":
+    "供应商 TLS 连接失败，请检查 API 地址和证书链。",
+  "The proxy connection to the provider failed. Check the proxy configuration and network.":
+    "连接供应商的代理失败，请检查代理配置和网络。",
+  "The provider connection was refused. Check the API URL and network.":
+    "供应商拒绝连接，请检查 API 地址和网络。",
+  "Streaming replies time out only when provider data stops arriving. Non-streaming replies have a total time limit.":
+    "流式回复在供应商连续无数据时超时；非流式回复按请求总时长计时。",
   "Lightweight mode": "轻量模式",
   "Enter lightweight mode": "进入轻量模式",
   "Enter lightweight mode?": "进入轻量模式？",

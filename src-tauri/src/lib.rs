@@ -12,8 +12,10 @@ mod runtime;
 mod stream;
 #[cfg(test)]
 mod tests;
+mod transport;
 mod tray;
 mod updates;
+mod upstream_errors;
 
 use certificate::CertificateManager;
 use config::{GatewayConfig, ProviderStore};

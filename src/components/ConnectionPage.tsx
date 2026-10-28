@@ -464,10 +464,16 @@ export function ConnectionPage({
                     min={1}
                     max={600}
                     value={draft.timeout_seconds}
+                    aria-describedby="provider-timeout-help"
                     onChange={(event) =>
                       patch({ timeout_seconds: Number(event.target.value) })
                     }
                   />
+                  <small id="provider-timeout-help" className="field-hint">
+                    {t(
+                      "Streaming replies time out only when provider data stops arriving. Non-streaming replies have a total time limit.",
+                    )}
+                  </small>
                 </label>
                 <label className="field">
                   <span>{t("Upstream authentication")}</span>
