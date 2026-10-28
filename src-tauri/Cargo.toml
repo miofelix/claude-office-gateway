@@ -1,6 +1,6 @@
 [package]
 name = "claude-office-gateway"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 description = "A private local gateway for Claude Office add-ins"
 authors = ["Mio Felix"]
 license = "MIT"
